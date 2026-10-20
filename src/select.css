@@ -356,9 +356,9 @@ body.touch #pads{display:flex}
 .pad em{font-style:normal;font-family:var(--num);font-size:clamp(8px,2.2vw,10px);font-weight:600;
   letter-spacing:.2em;color:rgba(255,255,255,.4)}
 /* キーボードのない端末では打鍵の文字を出さず、点だけ置く */
-body.nokb .pad b,body.nokb .pad em{display:none}
-body.nokb .pad::after{content:"";width:clamp(8px,2.2vw,11px);aspect-ratio:1;border-radius:50%;
-  background:var(--pc);opacity:.62;box-shadow:0 0 16px color-mix(in srgb,var(--pc) 60%,transparent)}
+/* 叩きパッドは画面に出さない。MVを隠さないよう、叩ける場所だけを残す */
+#pads .pad,#pads .pad.hit{background:none;box-shadow:none;clip-path:none}
+#pads .pad::before,#pads .pad b,#pads .pad em{display:none}
 /* 4レーンは色をレーンに合わせる */
 body:not(.mode-taiko) .pad[data-lane="0"],
 body:not(.mode-taiko) .pad[data-lane="3"]{--pc:#19d9ff}
@@ -458,8 +458,9 @@ body.mode-taiko .pad-drum{display:block}
 .pad-drum .drum-split{stroke:rgba(12,13,18,.30);stroke-width:1.5;pointer-events:none}
 .pad-drum .drum-sheen{fill:url(#dg-sheen);pointer-events:none}
 
-/* たいこは画面ぜんぶが叩ける。カの面は色を乗せない */
-body.mode-taiko #pads{inset:0;height:auto;padding:0;background:none;box-shadow:none}
+/* 画面ぜんぶが叩ける。面には色を乗せない（--pad-h は判定線の位置にだけ使う） */
+body.touch #pads{inset:0;height:auto;padding:0;gap:0;background:none;box-shadow:none}
+.pad-lanes{gap:0}
 
 /* ===========================================================================
    背の低い画面（横向きスマホなど）で収まるようにする

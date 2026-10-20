@@ -586,8 +586,4 @@ document.addEventListener('visibilitychange', () => {
 if (matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints > 0) {
   document.body.classList.add('touch');
 }
-// 指で遊ぶ端末ではキーの文字を出さない（ノートPCのタッチ画面は対象外）
-if (matchMedia('(pointer:coarse)').matches && !matchMedia('(hover:hover)').matches) {
-  document.body.classList.add('nokb');
-}
 resize();
