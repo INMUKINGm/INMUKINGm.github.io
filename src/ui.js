@@ -39,7 +39,12 @@ export function buildSettings(onChange, audio) {
       desc: '＋にすると判定が遅く（遅れて叩く人向け）。CALIBRATE で自動計測できます。',
       min: -150, max: 150, step: 1, fmt: v => (v > 0 ? '+' : '') + v + ' ms',
     },
-    { k: 'volume', label: '音量', desc: '', min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + '%' },
+    { k: 'volume', label: '曲の音量', desc: '', min: 0, max: 1, step: 0.01, fmt: v => Math.round(v * 100) + '%' },
+    {
+      k: 'hitvol', label: '打撃音の音量',
+      desc: '叩いたときのドン／カの大きさ。曲に対して埋もれるときは上げてください。',
+      min: 0, max: 2.5, step: 0.05, fmt: v => Math.round(v * 100) + '%',
+    },
     { k: 'dim', label: '映像の暗さ', desc: 'MVを暗くするほどノーツが見やすくなります。', min: 0, max: .85, step: .01, fmt: v => Math.round(v * 100) + '%' },
     { k: 'fx', label: 'エフェクト強度', desc: '衝撃波・色収差・ブルームの量。重いときは下げてください。', min: 0, max: 1.4, step: .05, fmt: v => Math.round(v * 100) + '%' },
     { k: 'persp', label: '奥行き（4レーン）', desc: 'ハイウェイのパース。0で真っすぐ落ちてきます。', min: 0, max: 1, step: .02, fmt: v => Math.round(v * 100) + '%' },

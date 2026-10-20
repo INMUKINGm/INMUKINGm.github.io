@@ -8,6 +8,7 @@ const DEFAULTS = {
   offset: 0,           // 判定オフセット(ms)  +で「遅く叩く人」向けに遅らせる
   volume: 0.85,
   hitsound: true,
+  hitvol: 1.10,        // 打撃音の音量
   fx: 1.0,             // 映像エフェクトの強さ
   dim: 0.35,           // 映像の暗さ（ノーツの見やすさ）
   persp: 0.75,         // ハイウェイの奥行き感

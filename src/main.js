@@ -143,7 +143,7 @@ function go(name) {
 
 function onSettingChange(k) {
   audio.setVolume(settings.volume);
-  audio.setSfxVolume(settings.hitsound ? 0.45 : 0);
+  audio.setSfxVolume(settings.hitsound ? settings.hitvol : 0);
   if (k === 'quality') loadVideo(settings.quality).then(ok => { if (ok) startAttract(); });
   if (game) game.lead = settings.scroll;
 }
@@ -384,35 +384,52 @@ function padLabels(taiko) {
   });
 }
 
-/** 太鼓の面：中が「ドン」、そのまわり全部が「カ」 */
+/** 太鼓の形のパッド。面（中）＝ドン、ふちから外側ぜんぶ＝カ。左右で手を分ける */
 function layoutDrum(w, h) {
   const svg = $('#pad-drum');
   if (!svg || h <= 0) return;
   svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-  const cx = w / 2, cy = h * 0.54;
-  const R = Math.max(40, Math.min(h * 0.50, w * 0.26));   // 面の外側（カとの境）
-  const r = R * 0.62;                                      // 面（ドン）
-  const set = (id, attrs) => { const e = document.getElementById(id); for (const k in attrs) e.setAttribute(k, attrs[k]); };
+  const cx = w / 2, cy = h * 0.50;
+  const R = Math.max(38, Math.min(h * 0.48, w * 0.26));   // ふちの外側
+  const rh = R * 0.74;                                     // 面
+  const set = (id, a) => { const e = document.getElementById(id); for (const k in a) e.setAttribute(k, a[k]); };
 
-  // まわり全部がカ。左右で手を分ける
   set('dz0', { x: 0, y: 0, width: cx, height: h });
   set('dz3', { x: cx, y: 0, width: w - cx, height: h });
-  // カの帯（面のまわり）と、面の下地
-  set('drum-ring', { cx: cx, cy: cy, r: (R + r) / 2, 'stroke-width': R - r });
-  set('drum-outer', { cx: cx, cy: cy, r: R });
-  set('drum-body', { cx: cx, cy: cy, r: r + 1 });
-  // 面の左右半分＝ドン
-  set('dz1', { d: 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0 0 ' + cx + ',' + (cy + r) + ' Z' });
-  set('dz2', { d: 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0 1 ' + cx + ',' + (cy + r) + ' Z' });
-  set('drum-split', { x1: cx, y1: cy - r, x2: cx, y2: cy + r });
-  set('drum-edge', { cx: cx, cy: cy, r: r });
-  const fs = Math.max(10, Math.min(r * 0.42, h * 0.16));
-  set('dl1', { x: cx - r * 0.5, y: cy, 'font-size': fs });
-  set('dl2', { x: cx + r * 0.5, y: cy, 'font-size': fs });
-  const kx = Math.max(fs * 1.6, Math.min(cx - R - fs * 1.8, w * 0.17));
-  set('dl0', { x: kx, y: cy, 'font-size': fs * 1.15 });
-  set('dl3', { x: w - kx, y: cy, 'font-size': fs * 1.15 });
   set('bg-split', { x1: cx, y1: 0, x2: cx, y2: h });
+
+  // 胴
+  set('drum-body', {
+    d: 'M' + (cx - R * .86) + ',' + (cy + R * .30) +
+       'L' + (cx - R * .70) + ',' + (cy + R * .92) +
+       'Q' + cx + ',' + (cy + R * 1.08) + ' ' + (cx + R * .70) + ',' + (cy + R * .92) +
+       'L' + (cx + R * .86) + ',' + (cy + R * .30) + 'Z',
+  });
+  // ふち（カ）と面（ドン）
+  set('drum-rim', { cx: cx, cy: cy, r: R });
+  set('drum-head', { cx: cx, cy: cy, r: rh });
+  // 鋲
+  const tacks = document.getElementById('drum-tacks');
+  const tr = (R + rh) / 2, ts = Math.max(1.4, R * 0.045);
+  let d = '';
+  for (let i = 0; i < 24; i++) {
+    const a2 = (i / 24) * Math.PI * 2 - Math.PI / 2;
+    const x = cx + Math.cos(a2) * tr, y = cy + Math.sin(a2) * tr;
+    d += 'M' + (x - ts) + ',' + y + 'a' + ts + ',' + ts + ' 0 1 0 ' + (ts * 2) + ',0a' + ts + ',' + ts + ' 0 1 0 ' + (-ts * 2) + ',0';
+  }
+  tacks.innerHTML = '<path class="drum-tack" d="' + d + '"/>';
+
+  // 面の左右半分＝ドン
+  set('dz1', { d: 'M' + cx + ',' + (cy - rh) + ' A' + rh + ',' + rh + ' 0 0 0 ' + cx + ',' + (cy + rh) + ' Z' });
+  set('dz2', { d: 'M' + cx + ',' + (cy - rh) + ' A' + rh + ',' + rh + ' 0 0 1 ' + cx + ',' + (cy + rh) + ' Z' });
+  set('drum-split', { x1: cx, y1: cy - rh * .97, x2: cx, y2: cy + rh * .97 });
+
+  const fs = Math.max(9, Math.min(rh * 0.36, h * 0.15));
+  set('dl1', { x: cx - rh * 0.46, y: cy, 'font-size': fs });
+  set('dl2', { x: cx + rh * 0.46, y: cy, 'font-size': fs });
+  const kx = Math.max(fs * 1.6, Math.min(cx - R - fs * 1.9, w * 0.17));
+  set('dl0', { x: kx, y: cy, 'font-size': fs * 1.2 });
+  set('dl3', { x: w - kx, y: cy, 'font-size': fs * 1.2 });
 }
 
 $$('#pads [data-lane]').forEach(el => {

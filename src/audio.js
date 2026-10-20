@@ -27,7 +27,7 @@ export class AudioEngine {
     this.gain = this.ctx.createGain();
     this.gain.connect(this.ctx.destination);
     this.sfx = this.ctx.createGain();
-    this.sfx.gain.value = 0.5;
+    this.sfx.gain.value = 1.0;
     this.sfx.connect(this.ctx.destination);
     this._makeHitBuffers();
     this.syncClock();
@@ -148,7 +148,7 @@ export class AudioEngine {
       const nz = new Float32Array(n);
       for (let i = 0; i < n; i++) nz[i] = (Math.random() * 2 - 1) * Math.exp(-(i / sr) / 0.005);
       bandpass(nz, noiseFc, 0.75);
-      for (let i = 0; i < n; i++) out[i] = Math.tanh((out[i] + nz[i] * noiseAmt) * gain * 1.15);
+      for (let i = 0; i < n; i++) out[i] = Math.tanh((out[i] + nz[i] * noiseAmt) * gain * 1.9) * 0.97;
       const f = Math.round(sr * 0.012);                      // 末尾を落として切る
       for (let i = 0; i < f; i++) out[n - 1 - i] *= i / f;
       const buf = ctx.createBuffer(1, n, sr);

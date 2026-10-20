@@ -137,7 +137,7 @@ export class Game {
   async start() {
     const a = this.audio;
     a.setVolume(this.set.volume);
-    a.setSfxVolume(this.set.hitsound ? 0.45 : 0);
+    a.setSfxVolume(this.set.hitsound ? this.set.hitvol : 0);
     await a.resume();
     await this.video.start(this.startAt);
     a.play(this.startAt, 0.18);
