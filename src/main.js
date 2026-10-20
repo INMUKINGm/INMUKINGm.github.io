@@ -174,7 +174,7 @@ async function startGame(pick) {
   if (game) game.stop();
 
   document.body.classList.toggle('mode-taiko', taiko);
-  padLabels(taiko);
+  padLabels();
   resize();
   showScreen('game');
   const d = DIFFS.find(x => x.id === pick.diff);
@@ -377,59 +377,34 @@ function menuKey(e, scr) {
 
 /* ------------------------------------------------- 叩きパッド（スマホ） */
 const padPointers = new Map();
-function padLabels(taiko) {
+function padLabels() {
   $$('#pads .pad').forEach((el, i) => {
-    el.querySelector('b').textContent = taiko ? '' : keyLabel(settings.keys[i]);
+    el.querySelector('b').textContent = keyLabel(settings.keys[i]);
     el.querySelector('em').textContent = 'LANE ' + (i + 1);
   });
 }
 
-/** 太鼓の形のパッド。面（中）＝ドン、ふちから外側ぜんぶ＝カ。左右で手を分ける */
+/** 太鼓のパッド。肌色の半円の中＝ドン（左右で手を分ける）、半円の外ぜんぶ＝カ */
 function layoutDrum(w, h) {
   const svg = $('#pad-drum');
   if (!svg || h <= 0) return;
   svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-  const cx = w / 2, cy = h * 0.50;
-  const R = Math.max(38, Math.min(h * 0.48, w * 0.26));   // ふちの外側
-  const rh = R * 0.74;                                     // 面
-  const set = (id, a) => { const e = document.getElementById(id); for (const k in a) e.setAttribute(k, a[k]); };
+  const cx = w / 2, b = h - 2;                              // 半円の底辺
+  // 幅は画面の約6割。残した左右がカの叩き場所になる。高さは帯いっぱいまで。
+  const rx = Math.max(52, w * 0.29);
+  const ry = Math.max(40, Math.min(h * 0.94, rx * 1.3));
+  const arc = (sweep, ex) => 'A' + rx + ',' + ry + ' 0 0 ' + sweep + ' ' + ex + ',' + b;
+  const set = (id, a2) => { const e = document.getElementById(id); for (const k in a2) e.setAttribute(k, a2[k]); };
 
   set('dz0', { x: 0, y: 0, width: cx, height: h });
   set('dz3', { x: cx, y: 0, width: w - cx, height: h });
   set('bg-split', { x1: cx, y1: 0, x2: cx, y2: h });
 
-  // 胴
-  set('drum-body', {
-    d: 'M' + (cx - R * .86) + ',' + (cy + R * .30) +
-       'L' + (cx - R * .70) + ',' + (cy + R * .92) +
-       'Q' + cx + ',' + (cy + R * 1.08) + ' ' + (cx + R * .70) + ',' + (cy + R * .92) +
-       'L' + (cx + R * .86) + ',' + (cy + R * .30) + 'Z',
-  });
-  // ふち（カ）と面（ドン）
-  set('drum-rim', { cx: cx, cy: cy, r: R });
-  set('drum-head', { cx: cx, cy: cy, r: rh });
-  // 鋲
-  const tacks = document.getElementById('drum-tacks');
-  const tr = (R + rh) / 2, ts = Math.max(1.4, R * 0.045);
-  let d = '';
-  for (let i = 0; i < 24; i++) {
-    const a2 = (i / 24) * Math.PI * 2 - Math.PI / 2;
-    const x = cx + Math.cos(a2) * tr, y = cy + Math.sin(a2) * tr;
-    d += 'M' + (x - ts) + ',' + y + 'a' + ts + ',' + ts + ' 0 1 0 ' + (ts * 2) + ',0a' + ts + ',' + ts + ' 0 1 0 ' + (-ts * 2) + ',0';
-  }
-  tacks.innerHTML = '<path class="drum-tack" d="' + d + '"/>';
-
-  // 面の左右半分＝ドン
-  set('dz1', { d: 'M' + cx + ',' + (cy - rh) + ' A' + rh + ',' + rh + ' 0 0 0 ' + cx + ',' + (cy + rh) + ' Z' });
-  set('dz2', { d: 'M' + cx + ',' + (cy - rh) + ' A' + rh + ',' + rh + ' 0 0 1 ' + cx + ',' + (cy + rh) + ' Z' });
-  set('drum-split', { x1: cx, y1: cy - rh * .97, x2: cx, y2: cy + rh * .97 });
-
-  const fs = Math.max(9, Math.min(rh * 0.36, h * 0.15));
-  set('dl1', { x: cx - rh * 0.46, y: cy, 'font-size': fs });
-  set('dl2', { x: cx + rh * 0.46, y: cy, 'font-size': fs });
-  const kx = Math.max(fs * 1.6, Math.min(cx - R - fs * 1.9, w * 0.17));
-  set('dl0', { x: kx, y: cy, 'font-size': fs * 1.2 });
-  set('dl3', { x: w - kx, y: cy, 'font-size': fs * 1.2 });
+  set('drum-head', { d: 'M' + (cx - rx) + ',' + b + 'A' + rx + ',' + ry + ' 0 0 1 ' + (cx + rx) + ',' + b + 'Z',
+    'stroke-width': Math.max(2, Math.min(rx, ry) * 0.055) });
+  set('dz1', { d: 'M' + cx + ',' + (b - ry) + arc(0, cx - rx) + 'L' + cx + ',' + b + 'Z' });
+  set('dz2', { d: 'M' + cx + ',' + (b - ry) + arc(1, cx + rx) + 'L' + cx + ',' + b + 'Z' });
+  set('drum-split', { x1: cx, y1: b - ry * 0.97, x2: cx, y2: b });
 }
 
 $$('#pads [data-lane]').forEach(el => {
@@ -568,6 +543,8 @@ function toggleFullscreen() { document.fullscreenElement ? exitFullscreen() : en
 
 const fsBtn = $('#btn-fs');
 if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+const pauseBtn = $('#btn-pause');
+if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); togglePause(); });
 document.addEventListener('fullscreenchange', () => {
   document.body.classList.toggle('is-fs', !!document.fullscreenElement);
   setTimeout(resize, 120);
@@ -583,7 +560,7 @@ function resize() {
   const portrait = h / w > 1.15;
   const padH = document.body.classList.contains('touch')
     ? Math.round(Math.min(taikoPad ? 240 : 188,
-        Math.max(76, h * (portrait ? (taikoPad ? 0.26 : 0.22) : (taikoPad ? 0.38 : 0.30)))))
+        Math.max(76, h * (portrait ? (taikoPad ? 0.23 : 0.22) : (taikoPad ? 0.38 : 0.30)))))
     : 0;
   document.documentElement.style.setProperty('--pad-h', padH + 'px');
   if (padH > 0) layoutDrum(w, padH);

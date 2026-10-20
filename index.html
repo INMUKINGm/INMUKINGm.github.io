@@ -19,11 +19,16 @@
 </head>
 <body>
 
-<!-- 全画面ボタン（対応している端末だけ出る） -->
-<button id="btn-fs" aria-label="全画面">
-  <svg viewBox="0 0 24 24" class="i-on"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
-  <svg viewBox="0 0 24 24" class="i-off"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg>
-</button>
+<!-- 画面の隅にいつも出しておくボタン -->
+<div id="sys-btns">
+  <button id="btn-pause" aria-label="一時停止">
+    <svg viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></svg>
+  </button>
+  <button id="btn-fs" aria-label="全画面">
+    <svg viewBox="0 0 24 24" class="i-on"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+    <svg viewBox="0 0 24 24" class="i-off"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg>
+  </button>
+</div>
 
 <!-- ===================== 背景映像 / WebGL ===================== -->
 <div id="stage">
@@ -232,35 +237,19 @@
     <!-- たいこ用：面がドン、そのまわりがカ -->
     <svg class="pad-drum" id="pad-drum" preserveAspectRatio="none">
       <defs>
-        <radialGradient id="dg-head" cx="38%" cy="30%" r="80%">
-          <stop offset="0" stop-color="#fffdf6"/>
-          <stop offset="58%" stop-color="#f3e8d0"/>
-          <stop offset="100%" stop-color="#d6c2a0"/>
-        </radialGradient>
-        <linearGradient id="dg-rim" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#e9573c"/>
-          <stop offset="52%" stop-color="#c3301d"/>
-          <stop offset="100%" stop-color="#8a1d10"/>
-        </linearGradient>
-        <linearGradient id="dg-body" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#9f2616"/>
-          <stop offset="100%" stop-color="#55110a"/>
+        <linearGradient id="dg-head" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffe6cb"/>
+          <stop offset="55%" stop-color="#f3d2ad"/>
+          <stop offset="100%" stop-color="#dcb489"/>
         </linearGradient>
       </defs>
       <rect class="dz ka" id="dz0" data-lane="0"></rect>
       <rect class="dz ka" id="dz3" data-lane="3"></rect>
       <line class="bg-split" id="bg-split"></line>
-      <path class="drum-body" id="drum-body"></path>
-      <circle class="drum-rim" id="drum-rim"></circle>
-      <g id="drum-tacks"></g>
-      <circle class="drum-head" id="drum-head"></circle>
+      <path class="drum-head" id="drum-head"></path>
       <path class="dz don" id="dz1" data-lane="1"></path>
       <path class="dz don" id="dz2" data-lane="2"></path>
       <line class="drum-split" id="drum-split"></line>
-      <text class="dl don" id="dl1">ドン</text>
-      <text class="dl don" id="dl2">ドン</text>
-      <text class="dl ka" id="dl0">カ</text>
-      <text class="dl ka" id="dl3">カ</text>
     </svg>
   </div>
   <div id="rotate-hint">よこ画面のほうが遊びやすいです</div>

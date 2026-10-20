@@ -278,22 +278,27 @@ body.mode-taiko #hud-top{background:linear-gradient(180deg,rgba(2,3,8,.86),trans
 *::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.3)}
 *{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.2) rgba(255,255,255,.04)}
 
-/* ------------------------------------------------------------ 全画面ボタン */
-#btn-fs{position:fixed;z-index:60;display:none;place-items:center;
+/* ------------------------------------------------------------ 画面隅のボタン */
+#sys-btns{position:fixed;z-index:60;display:none;gap:7px;
   top:calc(env(safe-area-inset-top,0px) + 10px);
-  right:calc(env(safe-area-inset-right,0px) + 12px);
-  width:34px;height:34px;--k-s:8px;
+  right:calc(env(safe-area-inset-right,0px) + 12px)}
+body.can-fs #sys-btns,body.playing #sys-btns{display:flex}
+#sys-btns button{display:grid;place-items:center;width:34px;height:34px;--k-s:8px;
   clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
-  border:1px solid rgba(255,255,255,.16);background:rgba(8,12,22,.66);backdrop-filter:blur(10px);
-  color:rgba(255,255,255,.62);transition:color .2s,background .2s}
-#btn-fs:hover{color:#fff;background:rgba(20,28,48,.8)}
-body.can-fs #btn-fs{display:grid}
-body.playing #btn-fs,body.is-fs.playing #btn-fs{display:none}
-#btn-fs svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
+  border:1px solid rgba(255,255,255,.16);background:rgba(8,12,22,.7);backdrop-filter:blur(10px);
+  color:rgba(255,255,255,.66);transition:color .2s,background .2s}
+#sys-btns button:hover{color:#fff;background:rgba(22,30,52,.85)}
+#sys-btns svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;
   stroke-linecap:round;stroke-linejoin:round}
+#btn-fs{display:none !important}
+body.can-fs #btn-fs{display:grid !important}
+#btn-pause{display:none !important}
+body.playing #btn-pause{display:grid !important}
 #btn-fs .i-off{display:none}
 body.is-fs #btn-fs .i-on{display:none}
 body.is-fs #btn-fs .i-off{display:block}
+/* プレイ中はHUDがボタンと重ならないように右を空ける */
+body.playing #hud-top{padding-right:max(92px,calc(env(safe-area-inset-right,0px) + 92px))}
 
 /* ノッチのある端末で端が隠れないように */
 .sel2-head{padding-left:max(clamp(18px,2.4vw,36px),env(safe-area-inset-left,0px));
@@ -438,18 +443,10 @@ body.mode-taiko .pad-drum{display:block}
 .pad-drum .dz.ka{fill:rgba(31,230,255,.05)}
 .pad-drum .dz.don{fill:transparent}
 .pad-drum .dz.ka.hit{fill:rgba(31,230,255,.30)}
-.pad-drum .dz.don.hit{fill:rgba(255,70,145,.46)}
-
-.pad-drum .drum-body{fill:url(#dg-body);stroke:rgba(0,0,0,.45);stroke-width:1.5;pointer-events:none}
-.pad-drum .drum-rim{fill:url(#dg-rim);stroke:rgba(60,8,4,.7);stroke-width:1.5;pointer-events:none}
-.pad-drum .drum-head{fill:url(#dg-head);stroke:rgba(110,70,30,.5);stroke-width:1.2;pointer-events:none}
-.pad-drum .drum-tack{fill:#ffeccd;opacity:.9;pointer-events:none}
-.pad-drum .drum-split{stroke:rgba(120,85,45,.35);stroke-width:1;pointer-events:none}
+.pad-drum .dz.don.hit{fill:rgba(255,70,145,.42)}
+.pad-drum .drum-head{fill:url(#dg-head);stroke:#0c0d12;pointer-events:none}
+.pad-drum .drum-split{stroke:rgba(12,13,18,.4);stroke-width:1.5;pointer-events:none}
 .pad-drum .bg-split{stroke:rgba(255,255,255,.07);stroke-width:1;pointer-events:none}
-.pad-drum .dl{pointer-events:none;text-anchor:middle;dominant-baseline:central;
-  font-family:var(--ui);font-weight:700}
-.pad-drum .dl.ka{fill:rgba(31,230,255,.8);letter-spacing:.1em}
-.pad-drum .dl.don{fill:rgba(110,60,30,.72)}
 
 /* たいこのときは、たたく場所だとわかるように帯を敷く */
 body.mode-taiko #pads{
