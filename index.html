@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>BEAST 先輩</title>
+<link rel="stylesheet" href="src/fonts.css">
+<link rel="stylesheet" href="src/style.css">
+<link rel="stylesheet" href="src/select.css">
+</head>
+<body>
+
+<!-- ===================== 背景映像 / WebGL ===================== -->
+<div id="stage">
+  <video id="video" playsinline muted preload="auto" disablepictureinpicture></video>
+  <canvas id="gl"></canvas>
+  <canvas id="fx"></canvas>
+</div>
+
+<!-- ===================== ローディング ===================== -->
+<section id="scr-load" class="screen active">
+  <div class="load-wrap">
+    <div class="logo-mark"><b>BEAST</b><span>先輩</span></div>
+    <div class="load-bar"><i id="load-fill"></i></div>
+    <div class="load-txt" id="load-txt">起動中…</div>
+  </div>
+</section>
+
+<!-- ===================== タイトル ===================== -->
+<section id="scr-title" class="screen">
+  <div class="title-grid">
+    <div class="title-left">
+      <div class="logo-mark big"><b>BEAST</b><span>先輩</span></div>
+      <div class="tagline">MUSIC VIDEO RHYTHM EXPERIENCE</div>
+      <div class="song-card">
+        <div class="song-jacket"><img id="jacket" alt=""></div>
+        <div class="song-meta">
+          <div class="song-title" id="t-title">—</div>
+          <div class="song-sub" id="t-sub">—</div>
+          <div class="song-stats"><span id="t-bpm">BPM —</span><span id="t-len">—</span><span id="t-cuts">— CUT</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="title-right">
+      <button class="menu-btn primary" data-go="select"><b>PLAY</b><i>譜面を選ぶ</i></button>
+      <button class="menu-btn" data-go="settings"><b>SETTINGS</b><i>速度・判定調整</i></button>
+      <button class="menu-btn" data-go="calibrate"><b>CALIBRATE</b><i>タイミング較正</i></button>
+      <button class="menu-btn" data-go="howto"><b>HOW TO PLAY</b><i>遊びかた</i></button>
+    </div>
+  </div>
+  <div class="hint-bar"><span><kbd>&uarr;</kbd><kbd>&darr;</kbd>SELECT</span><span><kbd>Enter</kbd>DECIDE</span></div>
+</section>
+
+<!-- ===================== 選曲 ===================== -->
+<section id="scr-select" class="screen sel2">
+  <div class="sel2-bg"></div>
+
+  <header class="sel2-head">
+    <div class="sh-title"><b>SELECT CHART</b><span>曲をえらぶ</span></div>
+    <div class="mode-switch" id="mode-tab">
+      <button class="ms-key" data-mode="-1">Q</button>
+      <div class="ms-track bev">
+        <div class="ms-in bev-in" id="ms-track" data-i="0">
+          <i class="ms-thumb"></i>
+          <button class="ms-seg" data-i="0"><b>4 LANE</b><span>4レーン</span></button>
+          <button class="ms-seg" data-i="1"><b>TAIKO</b><span>たいこ</span></button>
+        </div>
+      </div>
+      <button class="ms-key" data-mode="1">E</button>
+    </div>
+    <div class="sh-song"><b id="sh-song-title">—</b><span id="sh-song-meta">—</span></div>
+  </header>
+
+  <aside class="panel bev left">
+    <div class="panel-in bev-in">
+      <div class="p-head"><b>PERSONAL BEST</b><em>自己ベスト</em></div>
+      <div class="p-body" id="rec-rows"></div>
+    </div>
+  </aside>
+
+  <div class="sel2-list">
+    <div class="list-arw up">&#9650;</div>
+    <div class="sel2-inner" id="sel2-inner"></div>
+    <div class="list-arw down">&#9660;</div>
+  </div>
+
+  <aside class="panel bev right">
+    <div class="panel-in bev-in">
+      <div class="p-head"><b>CHART DETAIL</b><em id="rec-detail-head">&mdash;</em></div>
+      <div class="p-body rec-detail" id="rec-detail"></div>
+    </div>
+  </aside>
+
+  <footer class="sel2-foot">
+    <div class="sel2-mods">
+      <label class="chip2"><input type="checkbox" id="mod-auto">AUTO</label>
+      <label class="chip2"><input type="checkbox" id="mod-mirror">MIRROR</label>
+      <label class="chip2"><input type="checkbox" id="mod-nofx">LIGHT</label>
+    </div>
+    <div class="sel2-hint">
+      <span><kbd>Esc</kbd>BACK</span>
+      <span><kbd>&uarr;</kbd><kbd>&darr;</kbd>VERSION</span>
+      <span><kbd>&larr;</kbd><kbd>&rarr;</kbd>DIFFICULTY</span>
+      <span><kbd>Q</kbd><kbd>E</kbd>MODE</span>
+      <span class="go"><kbd>Enter</kbd>START</span>
+    </div>
+  </footer>
+  <button id="btn-start" hidden></button>
+</section>
+
+<!-- ===================== 設定 ===================== -->
+<section id="scr-settings" class="screen">
+  <div class="sel-head">
+    <button class="back-btn" data-go="title">← もどる</button>
+    <div class="sel-title">SETTINGS</div>
+  </div>
+  <div class="settings-grid" id="settings-grid"></div>
+  <div class="sel-foot">
+    <button class="start-btn ghost" id="btn-reset">初期設定にもどす</button>
+    <button class="start-btn" data-go="title">決定</button>
+  </div>
+</section>
+
+<!-- ===================== 較正 ===================== -->
+<section id="scr-calibrate" class="screen">
+  <div class="sel-head">
+    <button class="back-btn" data-go="title">← もどる</button>
+    <div class="sel-title">CALIBRATE / タイミング較正</div>
+  </div>
+  <div class="cal-wrap">
+    <p class="cal-lead">鳴っている音に合わせて <b>スペース</b> か画面を叩いてください。<br>16回ぶんの平均から、あなたの環境のズレを自動で求めます。</p>
+    <div class="cal-ring"><div id="cal-dot"></div><div id="cal-count">0 / 16</div></div>
+    <div class="cal-result" id="cal-result">—</div>
+    <div class="cal-btns">
+      <button class="start-btn ghost" id="cal-start">はじめる</button>
+      <button class="start-btn" id="cal-apply" disabled>この値を使う</button>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 遊びかた ===================== -->
+<section id="scr-howto" class="screen">
+  <div class="sel-head">
+    <button class="back-btn" data-go="title">← もどる</button>
+    <div class="sel-title">HOW TO PLAY</div>
+  </div>
+  <div class="howto">
+    <div class="how-card">
+      <h3>MODE 1 / 4レーン</h3>
+      <div class="keycaps"><kbd>D</kbd><kbd>F</kbd><kbd>J</kbd><kbd>K</kbd></div>
+      <p>MVの上に浮かぶ4本のレーンに落ちてくるノーツを、判定ラインに重なった瞬間に叩きます。
+        伸びているノーツは押しっぱなし。スマホは画面下の4分割をタップ。</p>
+    </div>
+    <div class="how-card accent">
+      <h3>MODE 2 / たいこ</h3>
+      <div class="how-ico taiko"><i class="don"></i><i class="ka big"></i><i class="ka"></i></div>
+      <p><b>内側 <kbd>F</kbd><kbd>J</kbd> が「ドン」</b>（マゼンタの塗り）、
+        <b>外側 <kbd>D</kbd><kbd>K</kbd> が「カ」</b>（シアンの輪）。
+        音符と違う側で叩くと<b>不可</b>になります。<br>
+        ひとまわり大きい音符は<b>同じ側の2キーを同時</b>に叩くと「大」になって2倍の価値。
+        黄色い長い棒は<b>連打</b>で、どちらで叩いても回数ぶん入ります。</p>
+    </div>
+    <div class="how-card">
+      <h3>CUT ノーツ</h3>
+      <div class="how-ico cut"></div>
+      <p><b>MVの画が切り替わる瞬間</b>に流れてくる特別なノーツ。4レーンでは横一列、
+        たいこでは大音符になります。決めると映像がはじけます。</p>
+    </div>
+    <div class="how-card hype">
+      <h3>HYPE</h3>
+      <div class="how-ico hype"></div>
+      <p>繋ぐほど HYPE が上がり、<b>MVの発色・ブルーム・判定ラインの光</b>が強くなります。
+        ミスすると一気に冷めます。スコアとは別物で、<b>MVを一番アツい状態で流しきる</b>のが
+        このゲームのもう一つの目的です。</p>
+    </div>
+  </div>
+  <div class="sel-foot"><button class="start-btn" data-go="title">わかった</button></div>
+</section>
+
+<!-- ===================== プレイ画面 HUD ===================== -->
+<section id="scr-game" class="screen">
+  <div id="hud-top">
+    <div class="hud-score"><span id="hud-score">0000000</span><em id="hud-mult">x1.00</em></div>
+    <div class="hud-mid">
+      <div class="hype-wrap"><div class="hype-bar"><i id="hype-fill"></i></div><span class="hype-lab">HYPE</span></div>
+      <div class="hud-prog"><i id="prog-fill"></i></div>
+    </div>
+    <div class="hud-right"><span id="hud-acc">100.00%</span><em id="hud-diff">EXTRA</em></div>
+  </div>
+  <div id="hud-combo"><b id="combo-num">0</b><i>COMBO</i></div>
+  <div id="hud-judge"></div>
+  <div id="hud-fast"></div>
+  <div id="pause-layer">
+    <div class="pause-box">
+      <h2>PAUSE</h2>
+      <button class="start-btn" id="pz-resume">つづける</button>
+      <button class="start-btn ghost" id="pz-retry">やりなおす</button>
+      <button class="start-btn ghost" id="pz-quit">やめる</button>
+    </div>
+  </div>
+  <div id="countdown"></div>
+  <div id="touch-zones"><i></i><i></i><i></i><i></i></div>
+</section>
+
+<!-- ===================== リザルト ===================== -->
+<section id="scr-result" class="screen">
+  <div class="res-wrap">
+    <div class="res-head">
+      <div class="res-song"><b id="r-title">—</b><span id="r-diff">—</span></div>
+      <div class="res-grade" id="r-grade">S</div>
+    </div>
+    <div class="res-score"><span id="r-score">0</span><em id="r-best"></em></div>
+    <div class="res-body">
+      <div class="res-judges" id="r-judges"></div>
+      <div class="res-graph">
+        <canvas id="r-timing"></canvas>
+        <div class="res-graph-lab"><span>EARLY</span><span id="r-mean">—</span><span>LATE</span></div>
+        <canvas id="r-life"></canvas>
+        <div class="res-graph-lab"><span>0:00</span><span>HYPE 推移</span><span id="r-end">4:07</span></div>
+      </div>
+    </div>
+    <div class="res-advice" id="r-advice"></div>
+    <div class="res-btns">
+      <button class="start-btn" id="r-retry">リトライ</button>
+      <button class="start-btn ghost" id="r-select">譜面選択</button>
+      <button class="start-btn ghost" id="r-title-btn">タイトル</button>
+    </div>
+  </div>
+</section>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
