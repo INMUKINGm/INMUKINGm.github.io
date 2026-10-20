@@ -376,32 +376,60 @@ function menuKey(e, scr) {
 }
 
 /* ------------------------------------------------- 叩きパッド（スマホ） */
-const padEls = $$('#pads .pad');
 const padPointers = new Map();
 function padLabels(taiko) {
-  const jp = taiko ? ['カ', 'ドン', 'ドン', 'カ'] : ['', '', '', ''];
-  padEls.forEach((el, i) => {
-    el.querySelector('b').textContent = taiko ? jp[i] : keyLabel(settings.keys[i]);
-    el.querySelector('em').textContent = taiko
-      ? (i === 0 || i === 3 ? 'KA' : 'DON')
-      : 'LANE ' + (i + 1);
+  $$('#pads .pad').forEach((el, i) => {
+    el.querySelector('b').textContent = taiko ? '' : keyLabel(settings.keys[i]);
+    el.querySelector('em').textContent = 'LANE ' + (i + 1);
   });
 }
-padEls.forEach(el => {
+
+/** 太鼓の面：中が「ドン」、そのまわり全部が「カ」 */
+function layoutDrum(w, h) {
+  const svg = $('#pad-drum');
+  if (!svg || h <= 0) return;
+  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+  const cx = w / 2, cy = h * 0.54;
+  const R = Math.max(40, Math.min(h * 0.50, w * 0.26));   // 面の外側（カとの境）
+  const r = R * 0.62;                                      // 面（ドン）
+  const set = (id, attrs) => { const e = document.getElementById(id); for (const k in attrs) e.setAttribute(k, attrs[k]); };
+
+  // まわり全部がカ。左右で手を分ける
+  set('dz0', { x: 0, y: 0, width: cx, height: h });
+  set('dz3', { x: cx, y: 0, width: w - cx, height: h });
+  // カの帯（面のまわり）と、面の下地
+  set('drum-ring', { cx: cx, cy: cy, r: (R + r) / 2, 'stroke-width': R - r });
+  set('drum-outer', { cx: cx, cy: cy, r: R });
+  set('drum-body', { cx: cx, cy: cy, r: r + 1 });
+  // 面の左右半分＝ドン
+  set('dz1', { d: 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0 0 ' + cx + ',' + (cy + r) + ' Z' });
+  set('dz2', { d: 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0 1 ' + cx + ',' + (cy + r) + ' Z' });
+  set('drum-split', { x1: cx, y1: cy - r, x2: cx, y2: cy + r });
+  set('drum-edge', { cx: cx, cy: cy, r: r });
+  const fs = Math.max(10, Math.min(r * 0.42, h * 0.16));
+  set('dl1', { x: cx - r * 0.5, y: cy, 'font-size': fs });
+  set('dl2', { x: cx + r * 0.5, y: cy, 'font-size': fs });
+  const kx = Math.max(fs * 1.6, Math.min(cx - R - fs * 1.8, w * 0.17));
+  set('dl0', { x: kx, y: cy, 'font-size': fs * 1.15 });
+  set('dl3', { x: w - kx, y: cy, 'font-size': fs * 1.15 });
+  set('bg-split', { x1: cx, y1: 0, x2: cx, y2: h });
+}
+
+$$('#pads [data-lane]').forEach(el => {
   const lane = +el.dataset.lane;
   el.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     document.body.classList.add('touch');
     if (!game || !game.running || game.paused) return;
     try { el.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
-    padPointers.set(e.pointerId, lane);
+    padPointers.set(e.pointerId, el);
     el.classList.add('hit');
     game.press(lane, audio.timeAtEvent(e.timeStamp));
   }, { passive: false });
   const up = (e) => {
     if (!padPointers.has(e.pointerId)) return;
     padPointers.delete(e.pointerId);
-    if (![...padPointers.values()].includes(lane)) el.classList.remove('hit');
+    if (![...padPointers.values()].includes(el)) el.classList.remove('hit');
     if (game) game.release(lane, audio.timeAtEvent(e.timeStamp));
   };
   el.addEventListener('pointerup', up);
@@ -534,10 +562,14 @@ function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   document.body.classList.toggle('portrait', h / w > 1.15);
+  const taikoPad = document.body.classList.contains('mode-taiko');
+  const portrait = h / w > 1.15;
   const padH = document.body.classList.contains('touch')
-    ? Math.round(Math.min(188, Math.max(72, h * (h / w > 1.15 ? 0.22 : 0.30))))
+    ? Math.round(Math.min(taikoPad ? 240 : 188,
+        Math.max(76, h * (portrait ? (taikoPad ? 0.26 : 0.22) : (taikoPad ? 0.38 : 0.30)))))
     : 0;
   document.documentElement.style.setProperty('--pad-h', padH + 'px');
+  if (padH > 0) layoutDrum(w, padH);
   rd4k.resize(w, h, dpr, padH);
   rdTaiko.resize(w, h, dpr, padH);
   gfx.resize(w, h, Math.min(1.5, window.devicePixelRatio || 1));

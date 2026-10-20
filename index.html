@@ -222,10 +222,30 @@
   </div>
   <div id="countdown"></div>
   <div id="pads">
-    <button class="pad ka"  data-lane="0"><b></b><em></em></button>
-    <button class="pad don" data-lane="1"><b></b><em></em></button>
-    <button class="pad don" data-lane="2"><b></b><em></em></button>
-    <button class="pad ka"  data-lane="3"><b></b><em></em></button>
+    <!-- 4レーン用：レーンそのままのボタン -->
+    <div class="pad-lanes">
+      <button class="pad ka"  data-lane="0"><b></b><em></em></button>
+      <button class="pad don" data-lane="1"><b></b><em></em></button>
+      <button class="pad don" data-lane="2"><b></b><em></em></button>
+      <button class="pad ka"  data-lane="3"><b></b><em></em></button>
+    </div>
+    <!-- たいこ用：面がドン、そのまわりがカ -->
+    <svg class="pad-drum" id="pad-drum" preserveAspectRatio="none">
+      <rect class="dz ka" id="dz0" data-lane="0"></rect>
+      <rect class="dz ka" id="dz3" data-lane="3"></rect>
+      <line class="bg-split" id="bg-split"></line>
+      <circle class="drum-ring" id="drum-ring"></circle>
+      <circle class="drum-outer" id="drum-outer"></circle>
+      <circle class="drum-body" id="drum-body"></circle>
+      <path class="dz don" id="dz1" data-lane="1"></path>
+      <path class="dz don" id="dz2" data-lane="2"></path>
+      <line class="drum-split" id="drum-split"></line>
+      <circle class="drum-edge" id="drum-edge"></circle>
+      <text class="dl ka" id="dl0">カ</text>
+      <text class="dl don" id="dl1">ドン</text>
+      <text class="dl don" id="dl2">ドン</text>
+      <text class="dl ka" id="dl3">カ</text>
+    </svg>
   </div>
   <div id="rotate-hint">よこ画面のほうが遊びやすいです</div>
 </section>
