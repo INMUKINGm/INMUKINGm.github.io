@@ -1,0 +1,6 @@
+# ローカル専用の高画質版。配信には assets/mv_720.mp4 を使う
+assets/mv_1080.mp4
+# 中間ファイル
+work/song.wav
+work/source.txt
+ffmpeg2pass-*.log*

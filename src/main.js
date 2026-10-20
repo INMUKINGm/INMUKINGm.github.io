@@ -64,14 +64,7 @@ async function boot() {
     await audio.load(['assets/song.m4a', 'assets/song.ogg'], p => step(0.20 + p * 0.55, '楽曲を読み込み中… ' + Math.round(p * 100) + '%'));
 
     step(0.78, 'MV を読み込み中…');
-    if (settings.quality !== 'off') {
-      try {
-        await video.load(settings.quality === 'lo' ? song.video.lo : song.video.hi);
-      } catch (e) {
-        console.warn('[mvbeat] 映像を読み込めませんでした', e);
-        video.enabled = false; gfx.hasVideo = false;
-      }
-    } else { video.enabled = false; gfx.hasVideo = false; }
+    await loadVideo(settings.quality);
 
     step(1, 'READY');
     setupUI();
@@ -96,6 +89,24 @@ function buildEntries(s) {
     { id: 'full', name: 'フルバージョン', sub: fmtTime(s.musicEnd - s.musicStart), section: null },
     { id: 'short', name: 'ショートバージョン', sub: fmtTime(end - start), section: { start: start, end: end } },
   ];
+}
+
+/** 画質に応じて映像を読み込む。1080p が無い環境では 720p に落ちる
+ *  （GitHub Pages には軽い 720p だけを置いているため） */
+async function loadVideo(quality) {
+  if (quality === 'off') { video.enabled = false; gfx.hasVideo = false; videoEl.pause(); return false; }
+  const list = quality === 'lo' ? [song.video.lo] : [song.video.hi, song.video.lo];
+  for (const url of list) {
+    try {
+      await video.load(url);
+      video.enabled = true; gfx.hasVideo = true;
+      return true;
+    } catch (e) {
+      console.warn('[beast] 映像を読み込めません:', url);
+    }
+  }
+  video.enabled = false; gfx.hasVideo = false;
+  return false;
 }
 
 function setupUI() {
@@ -133,14 +144,7 @@ function go(name) {
 function onSettingChange(k) {
   audio.setVolume(settings.volume);
   audio.setSfxVolume(settings.hitsound ? 0.45 : 0);
-  if (k === 'quality') {
-    const want = settings.quality;
-    if (want === 'off') { video.enabled = false; gfx.hasVideo = false; videoEl.pause(); }
-    else {
-      video.enabled = true; gfx.hasVideo = true;
-      video.load(want === 'lo' ? song.video.lo : song.video.hi).then(() => startAttract()).catch(() => { });
-    }
-  }
+  if (k === 'quality') loadVideo(settings.quality).then(ok => { if (ok) startAttract(); });
   if (game) game.lead = settings.scroll;
 }
 
