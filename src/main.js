@@ -384,27 +384,35 @@ function padLabels() {
   });
 }
 
-/** 太鼓のパッド。肌色の半円の中＝ドン（左右で手を分ける）、半円の外ぜんぶ＝カ */
-function layoutDrum(w, h) {
+/** 太鼓のパッド。肌色の半円の中＝ドン（左右で手を分ける）、
+ *  半円の外は画面のいちばん上までぜんぶカ。カの面は完全に透明。 */
+function layoutDrum(w, hFull, drumH) {
   const svg = $('#pad-drum');
-  if (!svg || h <= 0) return;
-  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
-  const cx = w / 2, b = h - 2;                              // 半円の底辺
-  // 幅は画面の約6割。残した左右がカの叩き場所になる。高さは帯いっぱいまで。
-  const rx = Math.max(52, w * 0.29);
-  const ry = Math.max(40, Math.min(h * 0.94, rx * 1.3));
+  if (!svg || hFull <= 0) return;
+  svg.setAttribute('viewBox', '0 0 ' + w + ' ' + hFull);
+  const cx = w / 2, b = hFull - 2;                          // 半円の底辺＝画面の下端
+  // 幅は画面の約6割。残した左右がカの叩き場所になる。高さは下の帯のぶん。
+  const portrait = hFull / w > 1.15;
+  const rx = Math.max(52, w * (portrait ? 0.285 : 0.185));
+  const ry = Math.max(40, Math.min(drumH * 0.82, rx * 1.2));
   const arc = (sweep, ex) => 'A' + rx + ',' + ry + ' 0 0 ' + sweep + ' ' + ex + ',' + b;
   const set = (id, a2) => { const e = document.getElementById(id); for (const k in a2) e.setAttribute(k, a2[k]); };
 
-  set('dz0', { x: 0, y: 0, width: cx, height: h });
-  set('dz3', { x: cx, y: 0, width: w - cx, height: h });
-  set('bg-split', { x1: cx, y1: 0, x2: cx, y2: h });
+  // カは画面いっぱい。左右で手を分ける
+  set('dz0', { x: 0, y: 0, width: cx, height: hFull });
+  set('dz3', { x: cx, y: 0, width: w - cx, height: hFull });
 
-  set('drum-head', { d: 'M' + (cx - rx) + ',' + b + 'A' + rx + ',' + ry + ' 0 0 1 ' + (cx + rx) + ',' + b + 'Z',
-    'stroke-width': Math.max(2, Math.min(rx, ry) * 0.055) });
+  const rw = Math.max(3, Math.min(rx, ry) * 0.075);          // 黒ぶちの太さ
+  const semi = (RX, RY) => 'M' + (cx - RX) + ',' + b + 'A' + RX + ',' + RY + ' 0 0 1 ' + (cx + RX) + ',' + b + 'Z';
+  set('drum-rim', { d: semi(rx + rw, ry + rw) });
+  set('drum-head', { d: semi(rx, ry) });
+  set('drum-edge', { d: 'M' + (cx - rx * 0.95) + ',' + b +
+    'A' + (rx * 0.95) + ',' + (ry * 0.95) + ' 0 0 1 ' + (cx + rx * 0.95) + ',' + b,
+    'stroke-width': Math.max(1, rw * 0.55) });
   set('dz1', { d: 'M' + cx + ',' + (b - ry) + arc(0, cx - rx) + 'L' + cx + ',' + b + 'Z' });
   set('dz2', { d: 'M' + cx + ',' + (b - ry) + arc(1, cx + rx) + 'L' + cx + ',' + b + 'Z' });
-  set('drum-split', { x1: cx, y1: b - ry * 0.97, x2: cx, y2: b });
+  set('drum-split', { x1: cx, y1: b - ry * 0.96, x2: cx, y2: b });
+  set('drum-sheen', { d: semi(rx, ry) });
 }
 
 $$('#pads [data-lane]').forEach(el => {
@@ -563,7 +571,7 @@ function resize() {
         Math.max(76, h * (portrait ? (taikoPad ? 0.23 : 0.22) : (taikoPad ? 0.38 : 0.30)))))
     : 0;
   document.documentElement.style.setProperty('--pad-h', padH + 'px');
-  if (padH > 0) layoutDrum(w, padH);
+  if (padH > 0) layoutDrum(w, h, padH);
   rd4k.resize(w, h, dpr, padH);
   rdTaiko.resize(w, h, dpr, padH);
   gfx.resize(w, h, Math.min(1.5, window.devicePixelRatio || 1));
@@ -577,5 +585,9 @@ document.addEventListener('visibilitychange', () => {
 });
 if (matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints > 0) {
   document.body.classList.add('touch');
+}
+// 指で遊ぶ端末ではキーの文字を出さない（ノートPCのタッチ画面は対象外）
+if (matchMedia('(pointer:coarse)').matches && !matchMedia('(hover:hover)').matches) {
+  document.body.classList.add('nokb');
 }
 resize();

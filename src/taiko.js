@@ -126,7 +126,11 @@ export class TaikoRenderer {
     const avail = h - this.padH;
     const narrow = w < 620;
     this.laneH = Math.max(66, Math.min(portrait ? 132 : 168, avail * 0.26, w * 0.15));
-    this.laneY = avail * (portrait ? 0.44 : 0.50);
+    // 上のHUD（細い画面では2段）と判定文字がぶつからない位置まで下げる
+    const hudH = w < 620 ? 88 : 58;
+    this.laneY = Math.min(
+      Math.max(avail * (portrait ? 0.44 : 0.50), hudH + this.laneH * 0.95),
+      Math.max(this.laneH * 0.72, avail - this.laneH * 0.62));
     this.judgeX = Math.max(66, Math.min(w * 0.185, 270));
     this.judgeY = this.laneY;
     // 狭い画面は音符が重なるので、小さくしてスクロールも詰める
@@ -166,6 +170,7 @@ export class TaikoRenderer {
 
   // ------------------------------------------------------------------ 本体
   draw(g, dt) {
+    if (!g) return;               // 終了と同時にフレームが来ても落ちないように
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const t = g.gameTime;

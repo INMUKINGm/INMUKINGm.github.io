@@ -78,6 +78,7 @@ export class Renderer {
 
   // ------------------------------------------------------------------ 本体
   draw(g, dt) {
+    if (!g) return;               // 終了と同時にフレームが来ても落ちないように
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const K = this.K = 0.25 + g.set.persp * 1.7;

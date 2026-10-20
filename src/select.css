@@ -299,6 +299,8 @@ body.is-fs #btn-fs .i-on{display:none}
 body.is-fs #btn-fs .i-off{display:block}
 /* プレイ中はHUDがボタンと重ならないように右を空ける */
 body.playing #hud-top{padding-right:max(92px,calc(env(safe-area-inset-right,0px) + 92px))}
+/* 右上のボタンと評価の文字が重ならないように */
+body.can-fs .res-head{padding-right:46px}
 
 /* ノッチのある端末で端が隠れないように */
 .sel2-head{padding-left:max(clamp(18px,2.4vw,36px),env(safe-area-inset-left,0px));
@@ -341,8 +343,8 @@ body.touch #pads{display:flex}
 .pad{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
   gap:3px;--k-s:12px;overflow:hidden;
   clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
-  background:linear-gradient(180deg,rgba(14,20,34,.74),rgba(6,9,17,.84));
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+  background:linear-gradient(180deg,rgba(10,15,26,.30),rgba(4,7,14,.56));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);
   transition:background .07s linear;user-select:none;-webkit-user-select:none}
 .pad::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--pc);opacity:.75}
 .pad.don{--pc:#ff2e86}
@@ -350,16 +352,20 @@ body.touch #pads{display:flex}
 .pad.hit{background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 42%,transparent),rgba(6,9,17,.7));
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pc) 85%,transparent),0 0 24px color-mix(in srgb,var(--pc) 45%,transparent)}
 .pad b{font-size:clamp(14px,4.4vw,22px);font-weight:700;color:#fff;letter-spacing:.06em;
-  text-shadow:0 2px 10px rgba(0,0,0,.6)}
+  text-shadow:0 2px 12px rgba(0,0,0,.85)}
 .pad em{font-style:normal;font-family:var(--num);font-size:clamp(8px,2.2vw,10px);font-weight:600;
   letter-spacing:.2em;color:rgba(255,255,255,.4)}
+/* キーボードのない端末では打鍵の文字を出さず、点だけ置く */
+body.nokb .pad b,body.nokb .pad em{display:none}
+body.nokb .pad::after{content:"";width:clamp(8px,2.2vw,11px);aspect-ratio:1;border-radius:50%;
+  background:var(--pc);opacity:.62;box-shadow:0 0 16px color-mix(in srgb,var(--pc) 60%,transparent)}
 /* 4レーンは色をレーンに合わせる */
 body:not(.mode-taiko) .pad[data-lane="0"],
 body:not(.mode-taiko) .pad[data-lane="3"]{--pc:#19d9ff}
 body:not(.mode-taiko) .pad[data-lane="1"],
 body:not(.mode-taiko) .pad[data-lane="2"]{--pc:#ffffff}
 
-#rotate-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--pad-h,0px) + 12px);
+#rotate-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--pad-h,0px) + 16px);
   z-index:5;display:none;padding:6px 14px;--k-s:8px;
   clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
   background:rgba(8,12,22,.8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);
@@ -411,15 +417,18 @@ body.touch .ms-key[data-mode="1"]::after{border-left-color:currentColor;margin-l
   .sel2-foot{padding-top:7px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
   .chip2{padding:5px 10px;font-size:8.5px;letter-spacing:.14em}
 
-  /* プレイ中のHUD */
-  #hud-top{padding:8px 10px;gap:9px}
+  /* プレイ中のHUD。細い画面ではゲージを下の段に落として横幅を確保する */
+  #hud-top{padding:9px 11px;gap:12px;row-gap:7px;flex-wrap:wrap}
   .hud-score span{font-size:19px}
   .hud-score em{font-size:9px}
-  .hud-score{min-width:92px}
-  .hud-right{min-width:70px}
+  .hud-score{min-width:0}
+  .hud-right{min-width:0;flex:1}
   #hud-acc{font-size:14px}
   .hud-right em{font-size:9px}
   .hype-lab{display:none}
+  .hud-mid{order:3;flex-basis:100%;padding-top:0;gap:6px}
+  body.playing #hud-top{padding-right:11px}
+  body.playing .hud-right{padding-right:84px}
 
   /* 設定・遊びかた・リザルト */
   .settings-grid{grid-template-columns:1fr}
@@ -439,19 +448,18 @@ body.touch .ms-key[data-mode="1"]::after{border-left-color:currentColor;margin-l
 body.mode-taiko .pad-lanes{display:none}
 body.mode-taiko .pad-drum{display:block}
 
-.pad-drum .dz{cursor:pointer;transition:fill .07s linear;stroke:none}
-.pad-drum .dz.ka{fill:rgba(31,230,255,.05)}
-.pad-drum .dz.don{fill:transparent}
-.pad-drum .dz.ka.hit{fill:rgba(31,230,255,.30)}
-.pad-drum .dz.don.hit{fill:rgba(255,70,145,.42)}
-.pad-drum .drum-head{fill:url(#dg-head);stroke:#0c0d12;pointer-events:none}
-.pad-drum .drum-split{stroke:rgba(12,13,18,.4);stroke-width:1.5;pointer-events:none}
-.pad-drum .bg-split{stroke:rgba(255,255,255,.07);stroke-width:1;pointer-events:none}
+.pad-drum .dz{cursor:pointer;pointer-events:all;stroke:none;fill:transparent}
+.pad-drum .dz.don{transition:fill .08s linear}
+.pad-drum .dz.don.hit{fill:rgba(255,60,142,.46)}
+.pad-drum .drum-rim{fill:url(#dg-rim);pointer-events:none;
+  filter:drop-shadow(0 -3px 16px rgba(0,0,0,.6))}
+.pad-drum .drum-head{fill:url(#dg-head);pointer-events:none}
+.pad-drum .drum-edge{fill:none;stroke:rgba(126,80,38,.20);pointer-events:none}
+.pad-drum .drum-split{stroke:rgba(12,13,18,.30);stroke-width:1.5;pointer-events:none}
+.pad-drum .drum-sheen{fill:url(#dg-sheen);pointer-events:none}
 
-/* たいこのときは、たたく場所だとわかるように帯を敷く */
-body.mode-taiko #pads{
-  background:linear-gradient(180deg,rgba(4,7,14,.5),rgba(4,7,14,.88));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+/* たいこは画面ぜんぶが叩ける。カの面は色を乗せない */
+body.mode-taiko #pads{inset:0;height:auto;padding:0;background:none;box-shadow:none}
 
 /* ===========================================================================
    背の低い画面（横向きスマホなど）で収まるようにする
