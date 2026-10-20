@@ -114,7 +114,8 @@ export class TaikoRenderer {
     this.w = 0; this.h = 0;
   }
 
-  resize(w, h, dpr) {
+  resize(w, h, dpr, padH) {
+    this.padH = padH || 0;
     this.cv.width = Math.round(w * dpr);
     this.cv.height = Math.round(h * dpr);
     this.cv.style.width = w + 'px';
@@ -122,12 +123,16 @@ export class TaikoRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.w = w; this.h = h; this.dpr = dpr;
     const portrait = h / w > 1.15;
-    this.laneH = Math.max(80, Math.min(portrait ? 148 : 168, h * (portrait ? 0.17 : 0.23), w * 0.145));
-    this.laneY = h * (portrait ? 0.40 : 0.44);
-    this.judgeX = Math.max(104, Math.min(w * 0.185, 270));
+    const avail = h - this.padH;
+    const narrow = w < 620;
+    this.laneH = Math.max(66, Math.min(portrait ? 132 : 168, avail * 0.26, w * 0.15));
+    this.laneY = avail * (portrait ? 0.44 : 0.50);
+    this.judgeX = Math.max(66, Math.min(w * 0.185, 270));
     this.judgeY = this.laneY;
-    this.rSmall = this.laneH * 0.27;
-    this.rBig = this.laneH * 0.41;
+    // 狭い画面は音符が重なるので、小さくしてスクロールも詰める
+    this.rSmall = Math.min(this.laneH * 0.27, w * 0.044);
+    this.rBig = this.rSmall * 1.5;
+    this.leadMul = narrow ? 1.30 : 2.0;
   }
 
   xAt(dt, lead) { return this.judgeX + (dt / lead) * (this.w + this.rBig * 2 - this.judgeX); }
@@ -164,7 +169,7 @@ export class TaikoRenderer {
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const t = g.gameTime;
-    const lead = g.lead * 2.0;
+    const lead = g.lead * (this.leadMul || 2.0);
     const ly = this.laneY, lh = this.laneH;
     const top = ly - lh / 2, bot = ly + lh / 2;
     const glow = .4 + .6 * g.hype;
@@ -424,7 +429,9 @@ export class TaikoRenderer {
       c.save();
       c.textAlign = 'center'; c.textBaseline = 'middle';
       c.shadowColor = 'rgba(0,0,0,.75)'; c.shadowBlur = 14;
-      const cy = ly - lh * 1.52;
+      // 上に出すと HUD とぶつかる高さしかない時は、レーンの下へ回す
+      const above = ly - lh * 1.52;
+      const cy = above < lh * 0.9 ? ly + lh * 1.12 : above;
       c.font = '600 ' + Math.round(lh * .56) + 'px ' + NUM;
       const grd = c.createLinearGradient(0, cy - lh * .3, 0, cy + lh * .3);
       grd.addColorStop(0, '#ffffff');

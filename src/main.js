@@ -9,7 +9,7 @@ import { TaikoRenderer, toTaikoChart } from './taiko.js';
 import { Game } from './play.js';
 import { settings, getBest, saveBest } from './store.js';
 import { SongSelect, MODES, DIFFS } from './select.js';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime } from './ui.js';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');
@@ -174,6 +174,8 @@ async function startGame(pick) {
   if (game) game.stop();
 
   document.body.classList.toggle('mode-taiko', taiko);
+  padLabels(taiko);
+  resize();
   showScreen('game');
   const d = DIFFS.find(x => x.id === pick.diff);
   $('#hud-diff').textContent = (taiko ? 'たいこ / ' : '') + (d ? d.jp : chart.name);
@@ -373,6 +375,39 @@ function menuKey(e, scr) {
   list.forEach((x, k) => x.classList.toggle('sel', k === i));
 }
 
+/* ------------------------------------------------- 叩きパッド（スマホ） */
+const padEls = $$('#pads .pad');
+const padPointers = new Map();
+function padLabels(taiko) {
+  const jp = taiko ? ['カ', 'ドン', 'ドン', 'カ'] : ['', '', '', ''];
+  padEls.forEach((el, i) => {
+    el.querySelector('b').textContent = taiko ? jp[i] : keyLabel(settings.keys[i]);
+    el.querySelector('em').textContent = taiko
+      ? (i === 0 || i === 3 ? 'KA' : 'DON')
+      : 'LANE ' + (i + 1);
+  });
+}
+padEls.forEach(el => {
+  const lane = +el.dataset.lane;
+  el.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    document.body.classList.add('touch');
+    if (!game || !game.running || game.paused) return;
+    try { el.setPointerCapture(e.pointerId); } catch (err) { /* noop */ }
+    padPointers.set(e.pointerId, lane);
+    el.classList.add('hit');
+    game.press(lane, audio.timeAtEvent(e.timeStamp));
+  }, { passive: false });
+  const up = (e) => {
+    if (!padPointers.has(e.pointerId)) return;
+    padPointers.delete(e.pointerId);
+    if (![...padPointers.values()].includes(lane)) el.classList.remove('hit');
+    if (game) game.release(lane, audio.timeAtEvent(e.timeStamp));
+  };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+});
+
 /* ------------------------------------------------- タッチ / マウス */
 const activePointers = new Map();
 function laneFromX(x) {
@@ -498,8 +533,13 @@ document.addEventListener('fullscreenchange', () => {
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
   const dpr = Math.min(2, window.devicePixelRatio || 1);
-  rd4k.resize(w, h, dpr);
-  rdTaiko.resize(w, h, dpr);
+  document.body.classList.toggle('portrait', h / w > 1.15);
+  const padH = document.body.classList.contains('touch')
+    ? Math.round(Math.min(188, Math.max(72, h * (h / w > 1.15 ? 0.22 : 0.30))))
+    : 0;
+  document.documentElement.style.setProperty('--pad-h', padH + 'px');
+  rd4k.resize(w, h, dpr, padH);
+  rdTaiko.resize(w, h, dpr, padH);
   gfx.resize(w, h, Math.min(1.5, window.devicePixelRatio || 1));
   gfx.p.judgeY = (game ? game.rd.judgeY : rd4k.judgeY) / h;
   if (select) select.center();
@@ -509,4 +549,7 @@ window.addEventListener('orientationchange', () => setTimeout(resize, 200));
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && game && game.running && !game.paused) togglePause();
 });
-if (matchMedia('(pointer:coarse)').matches) document.body.classList.add('touch');
+if (matchMedia('(pointer:coarse)').matches || navigator.maxTouchPoints > 0) {
+  document.body.classList.add('touch');
+}
+resize();

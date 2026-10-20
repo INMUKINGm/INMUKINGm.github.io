@@ -9,7 +9,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BEAST 先輩">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="assets/cover.jpg">
+<link rel="icon" href="assets/icon/icon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/icon/icon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="assets/icon/icon-180.png">
 <title>BEAST 先輩</title>
 <link rel="stylesheet" href="src/fonts.css">
 <link rel="stylesheet" href="src/style.css">
@@ -111,11 +113,11 @@
       <label class="chip2"><input type="checkbox" id="mod-nofx">LIGHT</label>
     </div>
     <div class="sel2-hint">
-      <span><kbd>Esc</kbd>BACK</span>
+      <span data-touch="&#9664; BACK"><kbd>Esc</kbd>BACK</span>
       <span><kbd>&uarr;</kbd><kbd>&darr;</kbd>VERSION</span>
       <span><kbd>&larr;</kbd><kbd>&rarr;</kbd>DIFFICULTY</span>
       <span><kbd>Q</kbd><kbd>E</kbd>MODE</span>
-      <span class="go"><kbd>Enter</kbd>START</span>
+      <span class="go" data-touch="むずかしさを2回タップでスタート"><kbd>Enter</kbd>START</span>
     </div>
   </footer>
   <button id="btn-start" hidden></button>
@@ -219,7 +221,13 @@
     </div>
   </div>
   <div id="countdown"></div>
-  <div id="touch-zones"><i></i><i></i><i></i><i></i></div>
+  <div id="pads">
+    <button class="pad ka"  data-lane="0"><b></b><em></em></button>
+    <button class="pad don" data-lane="1"><b></b><em></em></button>
+    <button class="pad don" data-lane="2"><b></b><em></em></button>
+    <button class="pad ka"  data-lane="3"><b></b><em></em></button>
+  </div>
+  <div id="rotate-hint">よこ画面のほうが遊びやすいです</div>
 </section>
 
 <!-- ===================== リザルト ===================== -->

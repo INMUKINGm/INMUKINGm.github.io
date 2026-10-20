@@ -27,17 +27,18 @@ export class Renderer {
     this.portrait = false;
   }
 
-  resize(w, h, dpr) {
+  resize(w, h, dpr, padH) {
     this.dpr = dpr;
-    this.w = w; this.h = h;
+    this.w = w; this.h = h; this.padH = padH || 0;
     this.cv.width = Math.round(w * dpr);
     this.cv.height = Math.round(h * dpr);
     this.cv.style.width = w + 'px';
     this.cv.style.height = h + 'px';
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.portrait = h / w > 1.15;
-    this.judgeY = h * (this.portrait ? 0.745 : 0.855);
-    this.horizonY = h * (this.portrait ? 0.16 : 0.22);
+    const avail = h - this.padH;                 // 叩きパッドの上だけを使う
+    this.judgeY = avail * (this.portrait ? 0.80 : 0.87);
+    this.horizonY = avail * (this.portrait ? 0.15 : 0.21);
     this.fieldW = this.portrait
       ? Math.min(w * 0.96, 580)
       : Math.min(w * 0.52, h * 0.76, 820);

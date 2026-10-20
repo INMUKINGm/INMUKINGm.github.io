@@ -222,7 +222,10 @@ export class Game {
     if (lane >= 0) this.pressed[lane] = true;
 
     // 内側(F/J)＝ドン、外側(D/K)＝カ
-    if (this.mode === 'taiko') return this._pressTaiko(lane, t, (lane === 1 || lane === 2) ? 0 : 1);
+    const kind = (lane === 1 || lane === 2 || lane < 0) ? 0 : 1;
+    // 太鼓と同じで、空振りでも叩いた音は鳴らす。押した瞬間に出すのが一番速い。
+    if (this.set.hitsound) this.audio.blip(this.mode === 'taiko' && kind === 1 ? 'ka' : 'don');
+    if (this.mode === 'taiko') return this._pressTaiko(lane, t, kind);
 
     const cut = this._findNear(4, t);
     const own = lane >= 0 ? this._findNear(lane, t) : null;
@@ -255,7 +258,6 @@ export class Game {
       roll.rollHits++; this.rollTotal++;
       this.hype = Math.min(1, this.hype + 0.004);
       this.rd.roll(roll.rollHits);
-      if (this.set.hitsound) this.audio.blip(roll.rollHits % 2 ? 'don' : 'ka');
       return;
     }
     const near = this._findNear(0, t);
@@ -340,7 +342,7 @@ export class Game {
       this._advance(n);
       this.rd.hit(n.kind, j, false);
       if (big && hit) this._big = { n: n, t: n.t + d, lane: lane == null ? -1 : lane, kind: n.kind };
-      if (this.set.hitsound) this.audio.blip(big ? 'big' : (n.kind === 1 ? 'ka' : 'don'));
+      if (big && hit && this.set.hitsound) this.audio.blip('big');
       this.hooks.onJudge && this.hooks.onJudge(j, d, n);
       return;
     }
@@ -355,7 +357,7 @@ export class Game {
       this.gfx.p.flash = 0.45 * (this.mods.light ? 0.22 : this.set.fx);
       this.hype = Math.min(1, this.hype + 0.03);
     }
-    if (this.set.hitsound) this.audio.blip(big ? 'big' : 'don');
+    if (big && this.set.hitsound) this.audio.blip('big');
     this.hooks.onJudge && this.hooks.onJudge(j, d, n);
   }
 
@@ -460,6 +462,9 @@ export class Game {
           continue;
         }
         if (n.t <= t) {
+          if (this.set.hitsound) {
+            this.audio.blip(n.type === 2 ? 'big' : (this.mode === 'taiko' && n.kind === 1 ? 'ka' : 'don'));
+          }
           if (this.mode === 'taiko') {
             const lane = n.kind === 0 ? 1 : 0;      // ドンは内側、カは外側
             this.pressed[lane] = true;

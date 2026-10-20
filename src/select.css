@@ -323,3 +323,105 @@ body.is-fs #btn-fs .i-off{display:block}
 .how-ico.score i:nth-child(1){height:40%}
 .how-ico.score i:nth-child(2){height:70%}
 .how-ico.score i:nth-child(3){height:100%}
+
+/* ===========================================================================
+   スマホの叩きパッド
+   =========================================================================== */
+#pads{position:absolute;left:0;right:0;bottom:0;z-index:4;display:none;gap:5px;
+  height:var(--pad-h,0px);
+  padding:0 max(6px,env(safe-area-inset-left,0px)) max(6px,env(safe-area-inset-bottom,0px))
+            max(6px,env(safe-area-inset-right,0px));
+  touch-action:none;pointer-events:auto}
+body.touch #pads{display:flex}
+.pad{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;--k-s:12px;overflow:hidden;
+  clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
+  background:linear-gradient(180deg,rgba(14,20,34,.74),rgba(6,9,17,.84));
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);
+  transition:background .07s linear;user-select:none;-webkit-user-select:none}
+.pad::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:var(--pc);opacity:.75}
+.pad.don{--pc:#ff2e86}
+.pad.ka{--pc:#1fe6ff}
+.pad.hit{background:linear-gradient(180deg,color-mix(in srgb,var(--pc) 42%,transparent),rgba(6,9,17,.7));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--pc) 85%,transparent),0 0 24px color-mix(in srgb,var(--pc) 45%,transparent)}
+.pad b{font-size:clamp(14px,4.4vw,22px);font-weight:700;color:#fff;letter-spacing:.06em;
+  text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.pad em{font-style:normal;font-family:var(--num);font-size:clamp(8px,2.2vw,10px);font-weight:600;
+  letter-spacing:.2em;color:rgba(255,255,255,.4)}
+/* 4レーンは色をレーンに合わせる */
+body:not(.mode-taiko) .pad[data-lane="0"],
+body:not(.mode-taiko) .pad[data-lane="3"]{--pc:#19d9ff}
+body:not(.mode-taiko) .pad[data-lane="1"],
+body:not(.mode-taiko) .pad[data-lane="2"]{--pc:#ffffff}
+
+#rotate-hint{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--pad-h,0px) + 12px);
+  z-index:5;display:none;padding:6px 14px;--k-s:8px;
+  clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
+  background:rgba(8,12,22,.8);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);
+  font-size:11px;font-weight:700;color:#cfd9ea;white-space:nowrap;pointer-events:none;
+  animation:rh 5s ease forwards}
+body.touch.portrait #scr-game.active #rotate-hint{display:block}
+@keyframes rh{0%{opacity:0}10%{opacity:1}75%{opacity:1}100%{opacity:0}}
+
+/* ===========================================================================
+   スマホのメニュー調整
+   =========================================================================== */
+/* タッチ端末ではキーボードの案内を出さない */
+body.touch .hint-bar,
+body.touch .sel2-hint span:not([data-touch]){display:none}
+body.touch .sel2-hint span[data-touch]{font-size:0;gap:0}
+body.touch .sel2-hint span[data-touch] kbd{display:none}
+body.touch .sel2-hint span[data-touch]::before{content:attr(data-touch);font-size:9.5px;letter-spacing:.14em}
+body.touch .ms-key{font-size:0}
+body.touch .ms-key::after{content:"";width:0;height:0;border:4px solid transparent}
+body.touch .ms-key[data-mode="-1"]::after{border-right-color:currentColor;margin-right:3px}
+body.touch .ms-key[data-mode="1"]::after{border-left-color:currentColor;margin-left:3px}
+
+@media (max-width:620px){
+  /* タイトル */
+  .title-grid{gap:16px}
+  .logo-mark.big{font-size:clamp(38px,13vw,64px)}
+  .tagline{font-size:8.5px;letter-spacing:.2em;white-space:nowrap;overflow:hidden;text-overflow:clip}
+  .song-card{gap:13px;padding:13px;margin-top:18px}
+  .song-jacket{width:84px}
+  .song-title{font-size:17px}
+  .song-sub{font-size:9.5px;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .song-stats{font-size:8.5px;letter-spacing:.1em}
+  .song-stats span{padding:0 8px}
+  .title-right{flex-direction:column;gap:8px}
+  .menu-btn{flex:none;padding:13px 18px}
+  .menu-btn b{font-size:14px;letter-spacing:.16em}
+  .menu-btn i{font-size:10px;letter-spacing:.1em}
+
+  /* 選曲 */
+  .sel2-head{padding-top:12px;padding-bottom:9px;gap:9px}
+  .sh-title b{font-size:11px;letter-spacing:.2em}
+  .sh-title span{font-size:9px;letter-spacing:.2em}
+  .sh-song{font-size:10px}
+  .sh-song b{font-size:11px}
+  .sh-song span{font-size:8.5px}
+  .ms-seg{min-width:72px;padding:5px 12px}
+  .sc-title{font-size:19px}
+  .s-diffs{gap:5px}
+  .sel2-foot{padding-top:7px;padding-bottom:max(8px,env(safe-area-inset-bottom,0px))}
+  .chip2{padding:5px 10px;font-size:8.5px;letter-spacing:.14em}
+
+  /* プレイ中のHUD */
+  #hud-top{padding:8px 10px;gap:9px}
+  .hud-score span{font-size:19px}
+  .hud-score em{font-size:9px}
+  .hud-score{min-width:92px}
+  .hud-right{min-width:70px}
+  #hud-acc{font-size:14px}
+  .hud-right em{font-size:9px}
+  .hype-lab{display:none}
+
+  /* 設定・遊びかた・リザルト */
+  .settings-grid{grid-template-columns:1fr}
+  .howto{grid-template-columns:1fr;overflow-y:auto;align-content:start;padding-bottom:8px}
+  .how-card{padding:15px}
+  .res-wrap{gap:10px}
+  .res-break{display:none}
+  .res-grade{font-size:46px}
+  .res-score span{font-size:34px}
+}
