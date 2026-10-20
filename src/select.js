@@ -12,16 +12,16 @@ export const MODES = [
 ];
 
 export const DIFFS = [
-  { id: 'easy', jp: 'かんたん', en: 'EASY', c: '#3ce8c0' },
-  { id: 'normal', jp: 'ふつう', en: 'NORMAL', c: '#39a7ff' },
-  { id: 'hard', jp: 'むずかしい', en: 'HARD', c: '#ffc24a' },
-  { id: 'extra', jp: 'おに', en: 'EXTRA', c: '#ff3d7f' },
+  { id: 'normal', jp: 'ふつう', en: 'NORMAL', c: '#3ce8c0' },
+  { id: 'hard', jp: 'むずかしい', en: 'HARD', c: '#39a7ff' },
+  { id: 'oni', jp: 'おに', en: 'ONI', c: '#ffc24a' },
+  { id: 'ura', jp: '裏', en: 'URA', c: '#b05cff' },
 ];
 
 const fmtTime = (s) => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 /** 先頭のゼロを沈めて桁を読みやすくする */
 function scoreHtml(n) {
-  const s = String(Math.max(0, Math.round(n || 0))).padStart(7, '0');
+  const s = String(Math.max(0, Math.round(n || 0))).padStart(6, '0');
   const m = /^(0*)(\d*)$/.exec(s);
   return (m[1] ? '<i>' + m[1] + '</i>' : '') + m[2];
 }
@@ -121,7 +121,7 @@ export class SongSelect {
     host.innerHTML = DIFFS.map((d, i) => {
       const st = this.stat(this.mode, this.entry, i);
       const best = this.bestOf(this.mode, this.entry, i);
-      const lv = Math.max(1, Math.min(12, st.level));
+      const lv = Math.max(1, Math.min(12, Math.round(st.level / 20 * 12)));
       const meter = Array.from({ length: 12 }, (_, k) =>
         '<i class="' + (k < lv ? 'on' : '') + '"></i>').join('');
       return '<button class="dtile bev' + (i === this.diff ? ' sel' : '') + '" data-d="' + i + '" style="--c:' + d.c + '">' +

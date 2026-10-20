@@ -161,6 +161,8 @@ function stopAttract() { attract.on = false; }
 async function startGame(pick) {
   if (!pick) return;
   lastPick = pick;
+  // タッチ端末は、この操作のうちに全画面へ入る（あとからだと許可されない）
+  if (document.body.classList.contains('touch')) enterFullscreen();
   stopAttract();
   const taiko = pick.mode === 'taiko';
   const chart = charts[pick.mode][pick.diff];
@@ -464,6 +466,33 @@ function calTap(tsMs) {
     cal.devs = []; cal.n = 0;
   }
 }
+
+/* ======================================================= 全画面 */
+const FS_OK = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+if (FS_OK) document.body.classList.add('can-fs');
+
+async function enterFullscreen() {
+  if (!FS_OK || document.fullscreenElement) return;
+  const el = document.documentElement;
+  try {
+    await (el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : el.webkitRequestFullscreen());
+  } catch (e) { return; }
+  // 横向きで固定できる端末は固定する（できなくても遊べる）
+  try { await screen.orientation.lock('landscape'); } catch (e) { /* 非対応 */ }
+}
+async function exitFullscreen() {
+  try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) { /* noop */ }
+  try { if (document.fullscreenElement) await document.exitFullscreen(); } catch (e) { /* noop */ }
+}
+function toggleFullscreen() { document.fullscreenElement ? exitFullscreen() : enterFullscreen(); }
+
+const fsBtn = $('#btn-fs');
+if (fsBtn) fsBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  document.body.classList.toggle('is-fs', !!document.fullscreenElement);
+  setTimeout(resize, 120);
+  setTimeout(resize, 400);
+});
 
 /* ======================================================= リサイズ */
 function resize() {

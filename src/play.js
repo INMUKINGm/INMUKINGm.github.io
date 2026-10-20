@@ -6,16 +6,25 @@
      'taiko' … 一本レーン横スクロール（ドン／カの区別なし）
    =========================================================================== */
 
+/* --- スコア：全良フルコンボでちょうど 114514 になるように配る -----------------
+   内訳  ノーツ素点 + 45×(大/CUT) + 810(大/CUT全キメ) + 514(全良) + 1145(フルコンボ)
+   ノーツ素点は floor 配分＋余りを頭から1点ずつ足して、端数まで合わせる。        */
+export const SCORE_TOTAL = 114514;
+export const SCORE_FC = 1145;   // ミスなし
+export const SCORE_AP = 514;    // 判定が全部いちばん上
+export const SCORE_SP = 810;    // 大 / CUT を全部キメた
+export const SCORE_BIG = 45;    // 大 / CUT ひとつ
+
 export const JUDGE_SETS = {
   '4k': [
-    { name: 'JUST', win: 0.028, w: 1.00, cls: 'c-just', hype: 0.014 },
-    { name: 'COOL', win: 0.055, w: 0.85, cls: 'c-cool', hype: 0.010 },
-    { name: 'GOOD', win: 0.090, w: 0.55, cls: 'c-good', hype: 0.004 },
-    { name: 'BAD', win: 0.125, w: 0.25, cls: 'c-bad', hype: -0.035 },
+    { name: 'JUST', win: 0.028, w: 1.000, cls: 'c-just', hype: 0.014 },
+    { name: 'COOL', win: 0.055, w: 0.810, cls: 'c-cool', hype: 0.010 },
+    { name: 'GOOD', win: 0.090, w: 0.514, cls: 'c-good', hype: 0.004 },
+    { name: 'BAD', win: 0.125, w: 0.114, cls: 'c-bad', hype: -0.035 },
   ],
   taiko: [
-    { name: '良', win: 0.034, w: 1.00, cls: 'c-just', hype: 0.014 },
-    { name: '可', win: 0.080, w: 0.50, cls: 'c-good', hype: 0.004 },
+    { name: '良', win: 0.034, w: 1.000, cls: 'c-just', hype: 0.014 },
+    { name: '可', win: 0.080, w: 0.514, cls: 'c-good', hype: 0.004 },
   ],
 };
 export const MISS_NAME = { '4k': 'MISS', taiko: '不可' };
@@ -59,7 +68,12 @@ export class Game {
     }));
     this.chartInfo = opt.chart;
     this.total = this.notes.length;
-    this.totalUnits = this.notes.reduce((a, n) => a + this.unitOf(n), 0);
+    this.bigCount = this.notes.filter(n => n.type === 2).length;
+    const budget = SCORE_TOTAL - SCORE_FC - SCORE_AP - SCORE_SP - SCORE_BIG * this.bigCount;
+    this.noteBudget = Math.max(0, budget);
+    this.base = Math.floor(this.noteBudget / Math.max(1, this.total));
+    this.rem = this.noteBudget - this.base * this.total;
+    this.pts = 0; this.bigHits = 0; this._awarded = 0;
 
     // レーンごとの先頭ポインタ（判定用）。たいこは 1 本。
     this.qn = taiko ? 1 : 5;
@@ -107,7 +121,17 @@ export class Game {
     while (this._nextCut < s.cuts.length && s.cuts[this._nextCut] < this.startAt) this._nextCut++;
   }
 
-  unitOf(n) { return (this.mode === 'taiko' && n.type === 2) ? 2 : 1; }
+  unitOf() { return 1; }
+
+  /** ノーツ1個ぶんの素点を配る。判定が外れても枠は消費して配分をずらさない */
+  _award(weight, big) {
+    const i = this._awarded++;
+    const v = this.base + (i < this.rem ? 1 : 0);
+    let got = Math.round(v * weight);
+    if (big && weight > 0) { got += SCORE_BIG; this.bigHits++; }
+    this.pts += got;
+    return got;
+  }
 
   // ------------------------------------------------------------------ 開始
   async start() {
@@ -215,12 +239,10 @@ export class Game {
       const n = this._big.n;
       if (!n.big) {
         n.big = true;
-        this.wSum += this.judgeTable[n.result].w;
-        this.doneUnits += 1;
-        this.hype = Math.min(1, this.hype + 0.02);
+        this.hype = Math.min(1, this.hype + 0.04);
         this._recalc();
         this.rd.hit(n.kind, n.result, true);
-        if (this.set.hitsound) this.audio.blip('cut');
+        if (this.set.hitsound) this.audio.blip('big');
         this.gfx.shock(this.rd.judgeX / this.rd.w, this.gfx.p.judgeY, 1);
         this.gfx.p.flash = 0.3 * (this.mods.light ? 0.22 : this.set.fx);
       }
@@ -233,7 +255,7 @@ export class Game {
       roll.rollHits++; this.rollTotal++;
       this.hype = Math.min(1, this.hype + 0.004);
       this.rd.roll(roll.rollHits);
-      if (this.set.hitsound) this.audio.blip('hit');
+      if (this.set.hitsound) this.audio.blip(roll.rollHits % 2 ? 'don' : 'ka');
       return;
     }
     const near = this._findNear(0, t);
@@ -245,7 +267,8 @@ export class Game {
   /** 逆の側で叩いてしまった音符。太鼓と同じく不可にして消す */
   _wrongSide(n) {
     n.judged = true; n.dead = true; n.result = this.missIdx;
-    this.counts[this.missIdx]++; this.done++; this.doneUnits += this.unitOf(n);
+    this.counts[this.missIdx]++; this.done++; this.doneUnits += 1;
+    this._award(0, false);
     this.combo = 0;
     this.hype = Math.max(0, this.hype + MISS.hype);
     this._recalc(); this._advance(n);
@@ -302,7 +325,7 @@ export class Game {
     this.wSum += hit ? this.judgeTable[j].w : 0;
     this.done++;
     this.doneUnits += (this.mode === 'taiko' && n.type === 2) ? 1 : this.unitOf(n);
-    const comboOk = hit && j <= Math.max(0, this.judgeTable.length - 2);
+    const comboOk = hit && (this.mode === 'taiko' || j <= this.judgeTable.length - 2);
     if (comboOk) { this.combo++; if (this.combo > this.maxCombo) this.maxCombo = this.combo; }
     else this.combo = 0;
     this.comboSum += this.combo;
@@ -310,13 +333,14 @@ export class Game {
     this.hype = Math.max(0, Math.min(1, this.hype + (hit ? this.judgeTable[j].hype : MISS.hype)));
 
     const big = n.type === 2;
+    n.awarded = this._award(hit ? this.judgeTable[j].w : 0, big);
     if (this.mode === 'taiko') {
       n.dead = true;
       this._recalc();
       this._advance(n);
       this.rd.hit(n.kind, j, false);
       if (big && hit) this._big = { n: n, t: n.t + d, lane: lane == null ? -1 : lane, kind: n.kind };
-      if (this.set.hitsound) this.audio.blip('hit');
+      if (this.set.hitsound) this.audio.blip(big ? 'big' : (n.kind === 1 ? 'ka' : 'don'));
       this.hooks.onJudge && this.hooks.onJudge(j, d, n);
       return;
     }
@@ -331,7 +355,7 @@ export class Game {
       this.gfx.p.flash = 0.45 * (this.mods.light ? 0.22 : this.set.fx);
       this.hype = Math.min(1, this.hype + 0.03);
     }
-    if (this.set.hitsound) this.audio.blip(big ? 'cut' : 'hit');
+    if (this.set.hitsound) this.audio.blip(big ? 'big' : 'don');
     this.hooks.onJudge && this.hooks.onJudge(j, d, n);
   }
 
@@ -341,6 +365,7 @@ export class Game {
       this.counts[n.result]--; this.counts[this.missIdx]++;
       this.wSum -= this.judgeTable[n.result].w;
     }
+    this.pts -= (n.awarded || 0); n.awarded = 0;
     this.combo = 0;
     this.hype = Math.max(0, this.hype - 0.05);
     this._recalc();
@@ -378,6 +403,7 @@ export class Game {
         this.counts[n.result]++;
         this.done++; this.doneUnits++;
         this.wSum += ok ? 1 : 0;
+        n.awarded = this._award(ok ? 1 : 0, false);
         if (ok) { this.combo++; if (this.combo > this.maxCombo) this.maxCombo = this.combo; }
         else this.combo = 0;
         this.comboSum += this.combo;
@@ -400,7 +426,8 @@ export class Game {
         }
         if (n.t < t - this.hitWin) {
           n.judged = true; n.dead = true; n.result = this.missIdx;
-          this.counts[this.missIdx]++; this.done++; this.doneUnits += this.unitOf(n);
+          this.counts[this.missIdx]++; this.done++; this.doneUnits += 1;
+          this._award(0, false);
           this.combo = 0;
           this.hype = Math.max(0, this.hype + MISS.hype);
           this._recalc();
@@ -451,11 +478,20 @@ export class Game {
   }
 
   _recalc() {
-    const U = Math.max(1, this.totalUnits);
-    const N = Math.max(1, this.total);
-    const maxComboSum = N * (N + 1) / 2;
-    this.score = Math.round(900000 * (this.wSum / U) + 100000 * Math.min(1, this.comboSum / maxComboSum));
-    this.acc = this.doneUnits ? (this.wSum / this.doneUnits) * 100 : 100;
+    this.score = this.pts;
+    this.acc = this.done ? (this.wSum / this.done) * 100 : 100;
+  }
+
+  /** 最後に付くボーナス。全部そろうと合計がちょうど 114514 */
+  bonuses() {
+    const miss = this.counts[this.missIdx];
+    const allTop = this.counts.slice(1).every(c => c === 0) && this.done > 0;
+    return {
+      fc: (this.done > 0 && miss === 0 &&
+           (this.mode === 'taiko' || this.counts[this.judgeTable.length - 1] === 0)) ? SCORE_FC : 0,
+      ap: allTop ? SCORE_AP : 0,
+      sp: (this.bigCount > 0 && this.bigHits === this.bigCount) ? SCORE_SP : 0,
+    };
   }
 
   finish() {
@@ -472,8 +508,15 @@ export class Game {
     const sd = devs.length ? Math.sqrt(devs.reduce((a, b) => a + (b - mean) * (b - mean), 0) / devs.length) : 0;
     const miss = this.counts[this.missIdx];
     const worst = this.judgeTable.length - 1;
+    const bo = this.bonuses();
+    this.score = this.pts + bo.fc + bo.ap + bo.sp;
     const res = {
       mode: this.mode,
+      breakdown: {
+        notes: this.pts - SCORE_BIG * this.bigHits,
+        big: SCORE_BIG * this.bigHits, bigHits: this.bigHits, bigCount: this.bigCount,
+        fc: bo.fc, ap: bo.ap, sp: bo.sp, total: SCORE_TOTAL,
+      },
       names: this.judgeTable.map(j => j.name).concat([this.missName]),
       wins: this.judgeTable.map(j => j.win),
       classes: this.judgeTable.map(j => j.cls).concat(['c-miss']),
@@ -500,11 +543,12 @@ export class Game {
 }
 
 export function grade(score, acc, miss) {
+  const r = score / SCORE_TOTAL;
   if (miss === 0 && acc >= 99.5) return 'SSS';
-  if (score >= 990000) return 'SS';
-  if (score >= 960000) return 'S';
-  if (score >= 920000) return 'A';
-  if (score >= 850000) return 'B';
-  if (score >= 750000) return 'C';
+  if (r >= 0.99) return 'SS';
+  if (r >= 0.96) return 'S';
+  if (r >= 0.92) return 'A';
+  if (r >= 0.85) return 'B';
+  if (r >= 0.75) return 'C';
   return 'D';
 }

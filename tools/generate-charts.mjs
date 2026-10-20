@@ -143,11 +143,40 @@ console.log('cut notes =', cutTimes.length, '/ scene cuts', A.cuts.length);
 
 // ---------------------------------------------------------------- 難易度
 const DIFFS = [
-  { id: 'easy',   name: 'EASY',   minGap: 0.40, minS: 0.42, chordS: 9,    holdGap: 0.70, holdMax: 0.22, cuts: true },
-  { id: 'normal', name: 'NORMAL', minGap: 0.26, minS: 0.33, chordS: 0.95, holdGap: 0.55, holdMax: 0.20, cuts: true },
-  { id: 'hard',   name: 'HARD',   minGap: 0.16, minS: 0.22, chordS: 0.80, holdGap: 0.55, holdMax: 0.14, cuts: true },
-  { id: 'extra',  name: 'EXTRA',  minGap: 0.104, minS: 0.00, chordS: 0.64, holdGap: 0.80, holdMax: 0.09, cuts: true },
+  { id: 'normal', name: 'ふつう',     minGap: 0.26,  minS: 0.33, chordS: 0.95, holdGap: 0.55, holdMax: 0.20, cuts: true },
+  { id: 'hard',   name: 'むずかしい', minGap: 0.16,  minS: 0.22, chordS: 0.80, holdGap: 0.55, holdMax: 0.14, cuts: true },
+  { id: 'oni',    name: 'おに',       minGap: 0.104, minS: 0.00, chordS: 0.64, holdGap: 0.80, holdMax: 0.09, cuts: true },
+  // 裏：鳴っている音を全部拾ったうえで、盛り上がっている所は16分で埋め、
+  //     いちばん激しい所は32分を差し込む。人間が通せるぎりぎりを狙う。
+  { id: 'ura',    name: '裏',         minGap: 0.052, minS: 0.00, chordS: 0.30, holdGap: 1.40, holdMax: 0.02, cuts: true,
+    densify: { gate: 0.34, maxGrids: 4, burst: 0.52 } },
 ];
+
+/** 盛り上がっている区間の隙間を16分（最も激しい所は32分）で埋める */
+function densify(list, cfg) {
+  const d = cfg.densify;
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const a = list[i];
+    out.push(a);
+    const b = list[i + 1];
+    if (!b) continue;
+    const span = b.t - a.t;
+    const grids = Math.round(span / GRID);
+    if (grids < 2 || grids > d.maxGrids) continue;
+    if (Math.abs(span - grids * GRID) > 0.030) continue;   // グリッドに乗っていない所は触らない
+    const loud = loudAt(a.t + span / 2);
+    if (loud < d.gate) continue;
+    const half = loud >= d.burst && grids <= 2;            // ここぞは32分
+    const step = half ? GRID / 2 : GRID;
+    const n = Math.round(span / step);
+    for (let k = 1; k < n; k++) {
+      const t = +(a.t + k * step).toFixed(4);
+      out.push({ t: t, s: 0.26 + 0.1 * (k % 2), b: (k % 2) ? 2 : 1, gi: gridIndex(t), snapped: true, fill: true });
+    }
+  }
+  return out;
+}
 
 function selectOnsets(cfg) {
   const out = [];
@@ -222,14 +251,14 @@ function assignLanes(list, cfg) {
 function addChords(notes, cfg) {
   const extra = [];
   let lastChord = -9;
-  const minSpace = cfg.id === 'extra' ? 0.8 : 1.8;
+  const minSpace = cfg.id === 'ura' ? 0.34 : cfg.id === 'oni' ? 0.8 : 1.8;
   for (let i = 0; i < notes.length; i++) {
     const n = notes[i];
     if (n.type !== 0 || n.s < cfg.chordS) continue;
     if (n.t - lastChord < minSpace) continue;
     const pg = i > 0 ? n.t - notes[i - 1].t : 9;
     const ng = i < notes.length - 1 ? notes[i + 1].t - n.t : 9;
-    if (Math.min(pg, ng) < 0.18) continue;
+    if (Math.min(pg, ng) < (cfg.id === 'ura' ? 0.09 : 0.18)) continue;
     const opp = n.lane < 2 ? [3, 2] : [0, 1];
     extra.push({ t: n.t, lane: opp[rnd() < 0.65 ? 0 : 1], type: 0, dur: 0, s: n.s, b: n.b, gi: n.gi, snapped: n.snapped });
     lastChord = n.t;
@@ -271,7 +300,9 @@ function addHolds(notes, cfg) {
 const manifestDiffs = [];
 for (const cfg of DIFFS) {
   _seed = 0x9e3779b9;
-  let notes = assignLanes(selectOnsets(cfg), cfg);
+  let list = selectOnsets(cfg);
+  if (cfg.densify) list = densify(list, cfg);
+  let notes = assignLanes(list, cfg);
   notes = addChords(notes, cfg);
   notes = addHolds(notes, cfg);
   notes = notes.filter((n, i) => !(i > 0 && notes[i - 1].lane === n.lane && Math.abs(notes[i - 1].t - n.t) < 0.035));
@@ -285,7 +316,7 @@ for (const cfg of DIFFS) {
   }
   const holds = notes.filter(n => n.type === 1).length;
   const cuts = notes.filter(n => n.type === 2).length;
-  const level = Math.max(1, Math.min(13, Math.round(nps * 1.3 + maxNps * 0.28)));
+  const level = Math.max(1, Math.min(20, Math.round(nps * 1.3 + maxNps * 0.28)));
 
   const out = {
     id: cfg.id, name: cfg.name, level: level,

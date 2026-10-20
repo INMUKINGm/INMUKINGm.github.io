@@ -21,7 +21,7 @@ export function fmtTime(s) {
   const m = Math.floor(s / 60), r = Math.floor(s % 60);
   return m + ':' + String(r).padStart(2, '0');
 }
-export function fmtScore(n) { return String(Math.max(0, Math.round(n))).padStart(7, '0'); }
+export function fmtScore(n) { return String(Math.max(0, Math.round(n))).padStart(6, '0'); }
 
 /* ------------------------------------------------------------- 設定画面 */
 export function buildSettings(onChange, audio) {
@@ -131,6 +131,19 @@ export function renderResult(res, song, diff, isBest, prevBest) {
   $('#r-score').textContent = fmtScore(res.score);
   $('#r-best').textContent = res.mods.auto ? 'AUTO PLAY（記録なし）'
     : isBest ? '★ NEW RECORD' : prevBest ? 'BEST ' + fmtScore(prevBest.score) : '';
+
+  const b = res.breakdown;
+  if (b) {
+    const row = (lab, val, on) =>
+      '<span class="' + (on ? 'on' : '') + '"><em>' + lab + '</em><b>' + (val > 0 ? '+' : '') + val + '</b></span>';
+    $('#r-break').innerHTML =
+      '<span class="base"><em>ノーツ素点</em><b>' + b.notes + '</b></span>' +
+      row('大 / CUT ×' + b.bigHits, b.big, b.bigHits > 0) +
+      row('全キメ', b.sp, b.sp > 0) +
+      row('全良', b.ap, b.ap > 0) +
+      row('フルコンボ', b.fc, b.fc > 0) +
+      '<span class="cap"><em>満点</em><b>' + b.total + '</b></span>';
+  }
 
   const names = res.names, cls = res.classes;
   const mx = Math.max(1, ...res.counts);

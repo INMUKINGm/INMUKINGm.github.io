@@ -1,0 +1,10 @@
+{
+  "name": "BEAST 先輩",
+  "short_name": "BEAST",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05060b",
+  "theme_color": "#05060b",
+  "icons": [{ "src": "assets/cover.jpg", "sizes": "1280x720", "type": "image/jpeg" }]
+}

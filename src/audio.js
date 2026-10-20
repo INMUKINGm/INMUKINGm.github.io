@@ -109,38 +109,87 @@ export class AudioEngine {
     return (ctxT - this.latency - this.startCtx) * this.rate + this.startOffset;
   }
 
-  // ------------------------------------------------------------- 打鍵音
+  // ------------------------------------------------------------- 打撃音
+  /* 円形膜の振動モードを重ねて和太鼓の胴鳴りを作る。
+     低いモードほど長く残り、立ち上がりに短いノイズを足して皮の当たりを出す。 */
   _makeHitBuffers() {
     const ctx = this.ctx, sr = ctx.sampleRate;
-    const mk = (dur, fn) => {
-      const b = ctx.createBuffer(1, Math.ceil(sr * dur), sr);
-      const d = b.getChannelData(0);
-      for (let i = 0; i < d.length; i++) d[i] = fn(i / sr, i / d.length);
-      return b;
+
+    // 2次共振バンドパス（ノイズの色づけ用）
+    const bandpass = (x, fc, Q) => {
+      const w0 = 2 * Math.PI * fc / sr, al = Math.sin(w0) / (2 * Q), cw = Math.cos(w0);
+      const a0 = 1 + al, b0 = al / a0, b2 = -al / a0, a1 = -2 * cw / a0, a2 = (1 - al) / a0;
+      let x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+      for (let i = 0; i < x.length; i++) {
+        const xn = x[i];
+        const yn = b0 * xn + b2 * x2 - a1 * y1 - a2 * y2;
+        x2 = x1; x1 = xn; y2 = y1; y1 = yn; x[i] = yn;
+      }
+      return x;
     };
-    // 短いクリック（ノイズ＋高めのサイン）
-    this.hitBuf = mk(0.05, (t, p) => {
-      const env = Math.pow(1 - p, 3);
-      return (Math.sin(2 * Math.PI * 1900 * t) * 0.55 + (Math.random() * 2 - 1) * 0.45) * env * 0.5;
-    });
-    // CUT 用の太い音
-    this.cutBuf = mk(0.14, (t, p) => {
-      const env = Math.pow(1 - p, 2.2);
-      return (Math.sin(2 * Math.PI * (420 - 240 * p) * t) * 0.7 + (Math.random() * 2 - 1) * 0.3) * env * 0.6;
-    });
+
+    // 円形膜の固有モード比と、その鳴りの強さ
+    const MODE = [1.000, 1.594, 2.136, 2.296, 2.653, 2.918, 3.156, 3.501];
+    const AMP = [1.00, 0.46, 0.30, 0.23, 0.16, 0.12, 0.09, 0.06];
+
+    const drum = (dur, f0, glide, decay, noiseAmt, noiseFc, gain) => {
+      const n = Math.ceil(sr * dur), out = new Float32Array(n);
+      const ph = new Float32Array(MODE.length);
+      for (let i = 0; i < n; i++) {
+        const t = i / sr;
+        const f = f0 * (1 + glide * Math.exp(-t / 0.013));   // 叩いた直後だけ高い
+        let v = 0;
+        for (let m = 0; m < MODE.length; m++) {
+          ph[m] += 2 * Math.PI * f * MODE[m] / sr;
+          v += Math.sin(ph[m]) * AMP[m] * Math.exp(-t / (decay / (1 + m * 0.6)));
+        }
+        out[i] = v / 2.4;
+      }
+      const nz = new Float32Array(n);
+      for (let i = 0; i < n; i++) nz[i] = (Math.random() * 2 - 1) * Math.exp(-(i / sr) / 0.005);
+      bandpass(nz, noiseFc, 0.75);
+      for (let i = 0; i < n; i++) out[i] = Math.tanh((out[i] + nz[i] * noiseAmt) * gain * 1.15);
+      const f = Math.round(sr * 0.012);                      // 末尾を落として切る
+      for (let i = 0; i < f; i++) out[n - 1 - i] *= i / f;
+      const buf = ctx.createBuffer(1, n, sr);
+      buf.getChannelData(0).set(out);
+      return buf;
+    };
+
+    this.buf = {
+      // ドン：低く太い面の音
+      don: drum(0.42, 92, 1.45, 0.175, 0.34, 820, 0.92),
+      // カ：縁を叩いた硬く短い音
+      ka: drum(0.16, 338, 0.55, 0.045, 1.05, 2450, 0.80),
+      // 大：ひとまわり下げて長く
+      big: drum(0.56, 74, 1.55, 0.265, 0.40, 700, 1.05),
+    };
     // 較正用メトロノーム
-    this.tickBuf = mk(0.06, (t, p) => Math.sin(2 * Math.PI * 1500 * t) * Math.pow(1 - p, 4) * 0.6);
+    {
+      const n = Math.ceil(sr * 0.06), out = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const p = i / n;
+        out[i] = Math.sin(2 * Math.PI * 1500 * i / sr) * Math.pow(1 - p, 4) * 0.55;
+      }
+      const buf = ctx.createBuffer(1, n, sr);
+      buf.getChannelData(0).set(out);
+      this.buf.tick = buf;
+    }
   }
 
-  blip(kind = 'hit', when = 0) {
-    if (!this.ctx) return;
-    const b = kind === 'cut' ? this.cutBuf : kind === 'tick' ? this.tickBuf : this.hitBuf;
-    if (!b) return;
+  /** kind: don / ka / big / tick （hit・cut は別名） */
+  blip(kind = 'don', when = 0) {
+    if (!this.ctx || !this.buf) return;
+    const key = kind === 'hit' ? 'don' : kind === 'cut' ? 'big' : kind;
+    const b = this.buf[key] || this.buf.don;
     const s = this.ctx.createBufferSource();
     s.buffer = b;
+    // 毎回わずかに音程を散らして、連打が機械的に聞こえないようにする
+    s.playbackRate.value = key === 'tick' ? 1 : 0.97 + Math.random() * 0.06;
     s.connect(this.sfx);
     s.start(when || 0);
   }
+
   setSfxVolume(v) { if (this.sfx) this.sfx.gain.value = v; }
 }
 

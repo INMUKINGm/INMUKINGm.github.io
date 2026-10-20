@@ -3,12 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#05060b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BEAST 先輩">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="assets/cover.jpg">
 <title>BEAST 先輩</title>
 <link rel="stylesheet" href="src/fonts.css">
 <link rel="stylesheet" href="src/style.css">
 <link rel="stylesheet" href="src/select.css">
 </head>
 <body>
+
+<!-- 全画面ボタン（対応している端末だけ出る） -->
+<button id="btn-fs" aria-label="全画面">
+  <svg viewBox="0 0 24 24" class="i-on"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+  <svg viewBox="0 0 24 24" class="i-off"><path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6"/></svg>
+</button>
 
 <!-- ===================== 背景映像 / WebGL ===================== -->
 <div id="stage">
@@ -166,6 +179,13 @@
       <p><b>MVの画が切り替わる瞬間</b>に流れてくる特別なノーツ。4レーンでは横一列、
         たいこでは大音符になります。決めると映像がはじけます。</p>
     </div>
+    <div class="how-card score">
+      <h3>SCORE</h3>
+      <div class="how-ico score"><i></i><i></i><i></i></div>
+      <p>満点は <b>114514</b>。いちばん上の判定だけでつなぐと、ちょうどこの数字になります。<br>
+        大 / CUT ノーツは1個 <b>+45</b>、全部キメると <b>+810</b>、全良 <b>+514</b>、
+        フルコンボ <b>+1145</b>。</p>
+    </div>
     <div class="how-card hype">
       <h3>HYPE</h3>
       <div class="how-ico hype"></div>
@@ -210,6 +230,7 @@
       <div class="res-grade" id="r-grade">S</div>
     </div>
     <div class="res-score"><span id="r-score">0</span><em id="r-best"></em></div>
+    <div class="res-break" id="r-break"></div>
     <div class="res-body">
       <div class="res-judges" id="r-judges"></div>
       <div class="res-graph">
