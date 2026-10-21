@@ -160,6 +160,9 @@
   color:rgba(255,255,255,.34);font-variant-numeric:tabular-nums;flex:none}
 
 /* ------------------------------------------------------------ 左右パネル */
+/* 広い画面では左右の柱そのまま。入れ物は無いものとして扱う */
+.side-panels{display:contents}
+.sp-head,.sel2-scrim,.sc-menu{display:none}
 .panel{grid-row:2;align-self:center;--k:14px;--edge:rgba(255,255,255,.1)}
 .panel.left{grid-column:1;margin-left:clamp(14px,1.8vw,30px)}
 .panel.right{grid-column:3;margin-right:clamp(14px,1.8vw,30px)}
@@ -240,13 +243,57 @@
 /* ------------------------------------------------------------ 狭い画面 */
 @media (max-width:1040px),(max-aspect-ratio:0.95/1){
   .sel2{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr) auto}
-  .sel2-head{flex-direction:column;align-items:stretch;gap:11px}
+  .sel2-head{flex-direction:column;align-items:stretch;gap:6px;
+    padding:clamp(9px,1.4vh,14px) clamp(14px,2.4vw,36px) clamp(7px,1vh,11px)}
+  .sh-title span{display:none}
   .sh-song{margin-left:0;text-align:left;flex-direction:row;gap:10px;align-items:baseline}
   .mode-switch{justify-content:center}
+  .ms-seg{padding:4px clamp(12px,1.6vw,24px)}
   .sel2-list{grid-column:1;margin:0 clamp(12px,4vw,22px)}
-  .panel{display:none}
   .sel2-foot{flex-wrap:wrap;gap:9px}
   .sel2-hint{margin-left:0;width:100%;justify-content:space-between}
+
+  /* 左右の柱は、曲カードのハンバーガーで出す引き出しに変わる */
+  .sc-menu{display:flex;position:absolute;top:0;right:0;z-index:2;
+    flex-direction:column;justify-content:center;gap:4px;width:38px;height:34px;--k-s:8px;
+    clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
+    align-items:center;border:1px solid rgba(255,255,255,.16);background:rgba(10,15,26,.6)}
+  .sc-menu i{width:16px;height:2px;border-radius:1px;background:rgba(255,255,255,.72)}
+  .sc-menu:active{background:rgba(31,230,255,.18)}
+  .sc-info{padding-right:44px}
+
+  .side-panels{display:flex;flex-direction:column;gap:12px;
+    position:fixed;z-index:56;top:0;right:0;bottom:0;width:min(370px,88vw);
+    padding:max(12px,env(safe-area-inset-top,0px)) max(14px,env(safe-area-inset-right,0px))
+            max(14px,env(safe-area-inset-bottom,0px)) 14px;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:linear-gradient(200deg,rgba(10,14,26,.94),rgba(4,6,12,.96));
+    backdrop-filter:blur(16px);box-shadow:-24px 0 70px rgba(0,0,0,.65);
+    transform:translateX(102%);transition:transform .32s var(--easing);
+    pointer-events:none;visibility:hidden}
+  body.sel-drawer .side-panels{transform:none;pointer-events:auto;visibility:visible}
+  .side-panels .panel{grid-column:auto;grid-row:auto;align-self:stretch;margin:0;flex:none}
+  .sp-head{display:flex;align-items:center;justify-content:space-between;flex:none;
+    padding:2px 2px 0}
+  /* 右上の全画面ボタンと「とじる」が重ならないように */
+  body.can-fs .sp-head{padding-right:46px}
+  .sp-head b{font-family:var(--num);font-size:11px;font-weight:700;letter-spacing:.3em;
+    color:rgba(255,255,255,.5)}
+  .sp-close{width:32px;height:32px;display:grid;place-items:center;font-size:15px;
+    color:rgba(255,255,255,.6);border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.04)}
+  .sel2-scrim{display:block;position:fixed;inset:0;z-index:55;background:rgba(2,3,8,.6);
+    opacity:0;pointer-events:none;transition:opacity .32s var(--easing)}
+  body.sel-drawer .sel2-scrim{opacity:1;pointer-events:auto}
+}
+
+/* 横長で背の低い画面（横向きスマホ）は、ヘッダを1段に戻して高さを稼ぐ */
+@media (max-width:1040px) and (min-aspect-ratio:1.25/1){
+  .sel2-head{flex-direction:row;align-items:center;gap:clamp(12px,2vw,28px);
+    padding-top:clamp(7px,1.2vh,12px);padding-bottom:clamp(5px,.9vh,9px)}
+  .sh-title span{display:block}
+  .sh-song{margin-left:auto;text-align:right;flex-direction:column;gap:1px;align-items:flex-end}
+  .mode-switch{justify-content:flex-start}
 }
 @media (max-width:600px){
   .sc-jacket{display:none}

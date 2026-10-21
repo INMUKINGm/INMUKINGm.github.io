@@ -4,7 +4,7 @@
    ・中央＝曲。選んでいるものだけが開いて4つの難易度タイルが出る
    ・左＝自己ベスト、右＝選択中の譜面の中身（密度グラフつき）
    =========================================================================== */
-import { settings, getBest } from './store.js?v=f4eb597e';
+import { settings, getBest } from './store.js?v=7a7d998f';
 
 export const MODES = [
   { id: '4k', name: '4レーン', en: '4 LANE', c1: '#1fe6ff', c2: '#6f8bff' },
@@ -51,9 +51,22 @@ export class SongSelect {
     document.querySelector('.list-arw.up').addEventListener('click', () => this.moveEntry(-1));
     document.querySelector('.list-arw.down').addEventListener('click', () => this.moveEntry(1));
 
+    const scrim = document.getElementById('sel2-scrim');
+    if (scrim) scrim.addEventListener('click', () => this.toggleDrawer(false));
+    const spc = document.getElementById('sp-close');
+    if (spc) spc.addEventListener('click', () => this.toggleDrawer(false));
+
     this.buildList();
     this.apply();
     window.addEventListener('resize', () => { this.center(); this.drawDensity(); });
+  }
+
+  /** 狭い画面で、記録と譜面の詳細を引き出しとして出す */
+  toggleDrawer(on) {
+    const want = on == null ? !document.body.classList.contains('sel-drawer') : !!on;
+    document.body.classList.toggle('sel-drawer', want);
+    // 隠れている間は中身の大きさが測れないので、出してから描き直す
+    if (want) requestAnimationFrame(() => this.drawDensity());
   }
 
   key() { return MODES[this.mode].id + ':' + this.entries[this.entry].id + ':' + DIFFS[this.diff].id; }
@@ -89,6 +102,8 @@ export class SongSelect {
       '    <span class="sb-name">' + e.name + '</span><span class="sb-meta">' + e.sub + '</span></div>' +
       '  <div class="s-card bev"><div class="sc-in bev-in">' +
       '    <div class="sc-top">' +
+      '      <button class="sc-menu" type="button" aria-label="記録と譜面の詳細をひらく">' +
+      '        <i></i><i></i><i></i></button>' +
       '      <div class="sc-jacket"><img src="' + s.video.cover + '" alt=""></div>' +
       '      <div class="sc-info">' +
       '        <div class="sc-title">' + s.title + '</div>' +
@@ -102,6 +117,7 @@ export class SongSelect {
       '</div>').join('');
     this.elInner.querySelectorAll('.s-item').forEach(el => {
       el.addEventListener('click', (ev) => {
+        if (ev.target.closest('.sc-menu')) { this.toggleDrawer(); return; }
         const i = +el.dataset.i;
         if (i !== this.entry) { this.entry = i; this.apply(); return; }
         const tile = ev.target.closest('.dtile');
@@ -275,6 +291,7 @@ export class SongSelect {
   moveDiff(d) { this.diff = (this.diff + d + DIFFS.length) % DIFFS.length; this.apply(); }
 
   start() {
+    this.toggleDrawer(false);
     this.onStart({
       mode: MODES[this.mode].id,
       entry: this.entries[this.entry],

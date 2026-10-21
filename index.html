@@ -13,9 +13,9 @@
 <link rel="icon" href="assets/icon/icon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="assets/icon/icon-180.png">
 <title>BEAST 先輩</title>
-<link rel="stylesheet" href="src/fonts.css?v=f4eb597e">
-<link rel="stylesheet" href="src/style.css?v=f4eb597e">
-<link rel="stylesheet" href="src/select.css?v=f4eb597e">
+<link rel="stylesheet" href="src/fonts.css?v=7a7d998f">
+<link rel="stylesheet" href="src/style.css?v=7a7d998f">
+<link rel="stylesheet" href="src/select.css?v=7a7d998f">
 </head>
 <body>
 
@@ -91,25 +91,32 @@
     <div class="sh-song"><b id="sh-song-title">—</b><span id="sh-song-meta">—</span></div>
   </header>
 
-  <aside class="panel bev left">
-    <div class="panel-in bev-in">
-      <div class="p-head"><b>PERSONAL BEST</b><em>自己ベスト</em></div>
-      <div class="p-body" id="rec-rows"></div>
+  <!-- 広い画面では左右の柱、狭い画面ではハンバーガーで出す引き出しになる -->
+  <div class="side-panels" id="side-panels">
+    <div class="sp-head">
+      <b>RECORD</b>
+      <button class="sp-close" id="sp-close" type="button" aria-label="とじる">&#10005;</button>
     </div>
-  </aside>
+    <aside class="panel bev left">
+      <div class="panel-in bev-in">
+        <div class="p-head"><b>PERSONAL BEST</b><em>自己ベスト</em></div>
+        <div class="p-body" id="rec-rows"></div>
+      </div>
+    </aside>
+    <aside class="panel bev right">
+      <div class="panel-in bev-in">
+        <div class="p-head"><b>CHART DETAIL</b><em id="rec-detail-head">&mdash;</em></div>
+        <div class="p-body rec-detail" id="rec-detail"></div>
+      </div>
+    </aside>
+  </div>
+  <div class="sel2-scrim" id="sel2-scrim"></div>
 
   <div class="sel2-list">
     <div class="list-arw up">&#9650;</div>
     <div class="sel2-inner" id="sel2-inner"></div>
     <div class="list-arw down">&#9660;</div>
   </div>
-
-  <aside class="panel bev right">
-    <div class="panel-in bev-in">
-      <div class="p-head"><b>CHART DETAIL</b><em id="rec-detail-head">&mdash;</em></div>
-      <div class="p-body rec-detail" id="rec-detail"></div>
-    </div>
-  </aside>
 
   <footer class="sel2-foot">
     <div class="sel2-mods">
@@ -298,6 +305,6 @@
   </div>
 </section>
 
-<script type="module" src="src/main.js?v=f4eb597e"></script>
+<script type="module" src="src/main.js?v=7a7d998f"></script>
 </body>
 </html>
