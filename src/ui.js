@@ -1,7 +1,7 @@
 /* ===========================================================================
    ui.js — 画面まわり（設定・リザルト描画）
    =========================================================================== */
-import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=6b972638';
+import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=f4eb597e';
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -70,6 +70,7 @@ export function buildSettings(onChange, audio) {
   g.appendChild(toggleRow('打鍵音', '叩いたときのクリック音。タイミングの手掛かりになります。', 'hitsound', onChange));
   g.appendChild(toggleRow('FAST / SLOW 表示', '判定が早かったか遅かったかを毎回出します（4レーンのみ）。', 'showFast', onChange));
   g.appendChild(toggleRow('MV冒頭から再生', 'オフなら曲の直前（0:09）から始まります。', 'intro', onChange));
+  g.appendChild(toggleRow('FPS表示', '画面の出せる速さそのままで譜面が流れているかを右下に出します（120Hz・360Hz の確認用）。', 'fpsMeter', onChange));
 
   const kr = document.createElement('div');
   kr.className = 'set-row';
@@ -136,6 +137,12 @@ export function renderResult(res, song, diff, isBest, prevBest) {
   $('#r-score').textContent = fmtScore(res.score);
   $('#r-best').textContent = res.mods.auto ? 'AUTO PLAY（記録なし）'
     : isBest ? '★ NEW RECORD' : prevBest ? 'BEST ' + fmtScore(prevBest.score) : '';
+
+  // 全良／不可なしは大髭で判をつく
+  const stamp = $('#r-stamp');
+  stamp.className = 'res-stamp' + (res.perfect ? ' ap' : '');
+  stamp.textContent = res.perfect ? '全良' : res.full ? 'フルコンボ' : '';
+  if (stamp.textContent) { void stamp.offsetWidth; stamp.classList.add('on'); }
 
   const b = res.breakdown;
   if (b) {

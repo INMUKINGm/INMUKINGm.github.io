@@ -299,8 +299,9 @@ body.is-fs #btn-fs .i-on{display:none}
 body.is-fs #btn-fs .i-off{display:block}
 /* プレイ中はHUDがボタンと重ならないように右を空ける */
 body.playing #hud-top{padding-right:max(92px,calc(env(safe-area-inset-right,0px) + 92px))}
-/* 右上のボタンと評価の文字が重ならないように */
-body.can-fs .res-head{padding-right:46px}
+/* 右上のボタンと評価の文字が重ならないように、必ず隙間を空ける */
+body.can-fs .res-head{padding-right:58px}
+body.can-fs .res-grade{filter:none}
 
 /* ノッチのある端末で端が隠れないように */
 .sel2-head{padding-left:max(clamp(18px,2.4vw,36px),env(safe-area-inset-left,0px));
@@ -308,6 +309,30 @@ body.can-fs .res-head{padding-right:46px}
 .sel2-foot{padding-left:max(clamp(18px,2.4vw,36px),env(safe-area-inset-left,0px));
   padding-right:max(clamp(18px,2.4vw,36px),env(safe-area-inset-right,0px));
   padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
+
+/* FPS表示（設定でオンのときだけ出る） */
+#fps-meter{position:fixed;z-index:70;pointer-events:none;
+  right:calc(env(safe-area-inset-right,0px) + 12px);
+  bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
+  padding:4px 9px;--k-s:6px;
+  clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
+  background:rgba(8,12,22,.66);font-family:var(--num);font-size:10.5px;font-weight:600;
+  letter-spacing:.12em;color:rgba(158,244,255,.8);font-variant-numeric:tabular-nums}
+
+/* ------------------------------------------- リザルトの大髭スタンプ */
+.res-stamp{margin-left:auto;align-self:center;font-style:normal;font-family:var(--brush);
+  font-size:clamp(28px,5vw,66px);line-height:1;letter-spacing:.05em;white-space:nowrap;
+  color:transparent;-webkit-background-clip:text;background-clip:text;
+  background-image:linear-gradient(100deg,#ffffff 6%,#9ef4ff 34%,#ff2e86 96%);
+  filter:drop-shadow(0 2px 16px rgba(80,200,255,.45));
+  transform:rotate(-3.5deg);transform-origin:100% 50%;opacity:0;pointer-events:none}
+.res-stamp.ap{background-image:linear-gradient(100deg,#fffdf0 4%,#ffd34a 38%,#ff7a1f 72%,#ff2e86 98%);
+  filter:drop-shadow(0 2px 18px rgba(255,170,40,.55))}
+.res-stamp.on{animation:res-stamp .42s cubic-bezier(.2,1.5,.4,1) .3s forwards}
+@keyframes res-stamp{
+  0%{opacity:0;transform:rotate(-3.5deg) scale(2.1)}
+  55%{opacity:1}
+  100%{opacity:1;transform:rotate(-3.5deg) scale(1)}}
 
 /* ------------------------------------------------------------ リザルトの内訳 */
 .res-break{display:flex;flex-wrap:wrap;gap:0;margin:-6px 0 2px;align-items:stretch}
@@ -436,6 +461,7 @@ body.touch .ms-key[data-mode="1"]::after{border-left-color:currentColor;margin-l
   .how-card{padding:15px}
   .res-wrap{gap:10px}
   .res-break{display:none}
+  .res-stamp{font-size:clamp(22px,6vw,38px)}
   .res-grade{font-size:46px}
   .res-score span{font-size:34px}
 }

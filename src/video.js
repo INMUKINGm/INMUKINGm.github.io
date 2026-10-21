@@ -12,6 +12,7 @@ export class VideoSync {
     this.drift = 0;
     this.lastSeek = -9;
     this.mediaTime = 0;
+    this.frameSeq = 0;        // 新しいコマが届くたびに増える（texture の貼り直し用）
     this._rvfc = typeof el.requestVideoFrameCallback === 'function';
   }
 
@@ -35,6 +36,7 @@ export class VideoSync {
     if (!this._rvfc) return;
     this.el.requestVideoFrameCallback((_, meta) => {
       this.mediaTime = meta.mediaTime;
+      this.frameSeq++;
       this._tickFrame();
     });
   }

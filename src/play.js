@@ -93,6 +93,7 @@ export class Game {
     this.hypeLog = [];
     this.rollTotal = 0;
     this._hypeT = 0;
+    this._rollOn = false;
     this._big = null;
     this.gameTime = 0;
     this.finished = false;
@@ -176,11 +177,13 @@ export class Game {
     const t = this.gameTime;
 
     if (this.mods.auto) this._auto(t);
-    this._sweepMiss(t);
+    // 連打の締めは不可の掃除より先。逆にすると連打が採点されずに捨てられる
     if (this.mode === 'taiko') this._updateRoll(t); else this._updateHold(t);
+    this._sweepMiss(t);
     if (this._big && t - this._big.t > BIG_WINDOW) this._big = null;
 
-    this.hype += (0.22 - this.hype) * 0.10 * dt;
+    // 連打の最中は冷まさない（叩いているのに HYPE が下がっていた）
+    if (!this._rollOn) this.hype += (0.22 - this.hype) * 0.10 * dt;
     this.hype = Math.max(0, Math.min(1, this.hype));
     this._hypeT += dt;
     if (this._hypeT > 0.4) { this._hypeT = 0; this.hypeLog.push(+this.hype.toFixed(3)); }
@@ -256,7 +259,7 @@ export class Game {
     const roll = this._activeRoll(t);
     if (roll) {
       roll.rollHits++; this.rollTotal++;
-      this.hype = Math.min(1, this.hype + 0.004);
+      this.hype = Math.min(1, this.hype + 0.006);
       this.rd.roll(roll.rollHits);
       return;
     }
@@ -392,11 +395,13 @@ export class Game {
   /** 連打の受付と終了処理 */
   _updateRoll(t) {
     const arr = this.queues[0];
+    this._rollOn = false;
     for (let i = this.heads[0]; i < arr.length; i++) {
       const n = this.notes[arr[i]];
       if (n.type !== 1 || n.dead) continue;
       if (n.t > t + 0.2) break;
       n.rollActive = (t >= n.t - 0.02 && t <= n.t + n.dur);
+      if (n.rollActive) this._rollOn = true;
       if (t > n.t + n.dur) {
         n.rollActive = false;
         n.judged = true; n.dead = true;
@@ -422,10 +427,8 @@ export class Game {
         const n = this.notes[arr[this.heads[k]]];
         if (n.dead) { this.heads[k]++; continue; }
         if (n.judged) { if (n.holding) break; this.heads[k]++; continue; }
-        if (this.mode === 'taiko' && n.type === 1) {
-          if (t > n.t + n.dur) { this.heads[k]++; continue; }
-          break;
-        }
+        // 連打は _updateRoll が閉じる。ここで追い越すと素点が配られない
+        if (this.mode === 'taiko' && n.type === 1) break;
         if (n.t < t - this.hitWin) {
           n.judged = true; n.dead = true; n.result = this.missIdx;
           this.counts[this.missIdx]++; this.done++; this.doneUnits += 1;
@@ -458,7 +461,11 @@ export class Game {
         const n = this.notes[this.queues[k][i]];
         if (n.judged || n.dead) continue;
         if (this.mode === 'taiko' && n.type === 1) {
-          if (n.rollActive && Math.random() < 0.55) { n.rollHits++; this.rollTotal++; this.rd.roll(n.rollHits); }
+          if (n.rollActive && Math.random() < 0.55) {
+            n.rollHits++; this.rollTotal++;
+            this.hype = Math.min(1, this.hype + 0.006);
+            this.rd.roll(n.rollHits);
+          }
           continue;
         }
         if (n.t <= t) {
@@ -531,8 +538,8 @@ export class Game {
       combo: this.maxCombo,
       total: this.total,
       rolls: this.rollTotal,
-      full: miss === 0 && this.counts[worst] === 0,
-      perfect: this.counts.slice(1).every(c => c === 0),
+      full: miss === 0 && this.done > 0 && (this.mode === 'taiko' || this.counts[worst] === 0),
+      perfect: this.counts.slice(1).every(c => c === 0) && this.done > 0,
       devs: devs,
       meanDev: +mean.toFixed(1),
       medDev: +med.toFixed(1),

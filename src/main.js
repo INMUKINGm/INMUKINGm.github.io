@@ -1,15 +1,15 @@
 /* ===========================================================================
    main.js — 起動・メインループ・入力
    =========================================================================== */
-import { AudioEngine } from './audio.js?v=6b972638';
-import { VideoSync } from './video.js?v=6b972638';
-import { Gfx } from './gfx.js?v=6b972638';
-import { Renderer } from './render.js?v=6b972638';
-import { TaikoRenderer, toTaikoChart } from './taiko.js?v=6b972638';
-import { Game } from './play.js?v=6b972638';
-import { settings, getBest, saveBest } from './store.js?v=6b972638';
-import { SongSelect, MODES, DIFFS } from './select.js?v=6b972638';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=6b972638';
+import { AudioEngine } from './audio.js?v=f4eb597e';
+import { VideoSync } from './video.js?v=f4eb597e';
+import { Gfx } from './gfx.js?v=f4eb597e';
+import { Renderer } from './render.js?v=f4eb597e';
+import { TaikoRenderer, toTaikoChart } from './taiko.js?v=f4eb597e';
+import { Game } from './play.js?v=f4eb597e';
+import { settings, getBest, saveBest } from './store.js?v=f4eb597e';
+import { SongSelect, MODES, DIFFS } from './select.js?v=f4eb597e';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=f4eb597e';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');
@@ -119,6 +119,7 @@ function setupUI() {
 
   $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
   buildSettings(onSettingChange, audio);
+  setFpsMeter(settings.fpsMeter);
 
   select = new SongSelect({
     song: song, charts: charts, entries: entries,
@@ -146,6 +147,7 @@ function onSettingChange(k) {
   audio.setSfxVolume(settings.hitsound ? settings.hitvol : 0);
   if (k === 'quality') loadVideo(settings.quality).then(ok => { if (ok) startAttract(); });
   if (game) game.lead = settings.scroll;
+  setFpsMeter(settings.fpsMeter);
 }
 
 /* ======================================================= アトラクト */
@@ -277,18 +279,20 @@ function onFinish(res) {
 
 /* ======================================================= メインループ */
 let lastT = performance.now() / 1000, hudT = 0;
+let fpsN = 0, fpsT = 0, fpsVal = 0;
 function loop(now) {
   requestAnimationFrame(loop);
   const t = now / 1000;
   let dt = t - lastT; lastT = t;
   if (dt > 0.1) dt = 0.1;
-  audio.syncClock();
+  audio.syncClock(dt);
 
   const g = game;
   if (g && g.running && !g.paused) {
     g.update(dt);
     if (g === game && g.running) {
       video.sync(audio.time, t);
+      // 譜面は毎フレーム描く。120Hz でも 360Hz でも間引かない
       g.rd.draw(g, dt);
       hudT += dt;
       if (hudT > 0.033) { hudT = 0; updateHud(); }
@@ -297,7 +301,30 @@ function loop(now) {
     rd4k.ctx.clearRect(0, 0, rd4k.w, rd4k.h);
     attractUpdate(t, dt);
   }
-  gfx.render(t, dt);
+  gfx.render(t, dt, video.frameSeq);
+
+  // FPS表示（設定でオンのときだけ）
+  if (fpsEl) {
+    fpsN++; fpsT += dt;
+    if (fpsT >= 0.5) {
+      const v = Math.round(fpsN / fpsT);
+      if (v !== fpsVal) { fpsVal = v; fpsEl.textContent = v + ' FPS'; }
+      fpsN = 0; fpsT = 0;
+    }
+  }
+}
+
+/* ---- FPS表示。画面の出せる速さそのままで回っているかを見るためのもの */
+let fpsEl = null;
+function setFpsMeter(on) {
+  if (on && !fpsEl) {
+    fpsEl = document.createElement('div');
+    fpsEl.id = 'fps-meter';
+    fpsEl.textContent = '— FPS';
+    document.body.appendChild(fpsEl);
+  } else if (!on && fpsEl) {
+    fpsEl.remove(); fpsEl = null; fpsVal = 0; fpsN = 0; fpsT = 0;
+  }
 }
 
 function updateHud() {

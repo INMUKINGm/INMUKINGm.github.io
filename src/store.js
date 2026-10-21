@@ -18,6 +18,7 @@ const DEFAULTS = {
   lastMode: '4k',
   showFast: true,
   intro: false,        // MV冒頭の寸劇から再生するか（既定は曲頭から）
+  fpsMeter: false,     // FPS表示（画面の出せる速さで回っているかの確認用）
 };
 
 let state = load();

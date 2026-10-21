@@ -153,6 +153,7 @@ export class Gfx {
   constructor(canvas, video) {
     this.canvas = canvas;
     this.video = video;
+    this._vseq = -1;
     this.gl = null;
     this.ok = false;
     this.hasVideo = true;
@@ -219,7 +220,9 @@ export class Gfx {
     this.shockIdx = (this.shockIdx + 1) % 3;
   }
 
-  render(t, dt) {
+  /** seq … 映像の新しいコマが来るたびに増える数。同じコマなら貼り直さない。
+   *  （360Hz だと1コマを12回も GPU に送ることになり、それだけで帯域を食う） */
+  render(t, dt, seq) {
     if (!this.ok) return;
     const gl = this.gl, u = this.u, p = this.p;
     for (const s of this.shocks) if (s[2] > 0 && s[2] < 1.4) s[2] += dt * 1.9;
@@ -228,8 +231,13 @@ export class Gfx {
     const live = this.hasVideo && vid && vid.readyState >= 2 && vid.videoWidth > 0;
     if (live) {
       gl.bindTexture(gl.TEXTURE_2D, this.tex);
-      try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid); } catch (e) { /* フレーム未到達 */ }
+      if (seq == null || seq !== this._vseq) {
+        this._vseq = seq;
+        try { gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, vid); } catch (e) { /* フレーム未到達 */ }
+      }
       gl.uniform2f(u.uVid, vid.videoWidth, vid.videoHeight);
+    } else {
+      this._vseq = -1;
     }
     gl.uniform1f(u.uHasVideo, live ? 1 : 0);
     gl.uniform2f(u.uRes, this.canvas.width, this.canvas.height);

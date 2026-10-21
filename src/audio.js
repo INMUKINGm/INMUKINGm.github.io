@@ -42,14 +42,16 @@ export class AudioEngine {
   }
 
   /** performance.now() とオーディオ時計の対応を更新（毎フレーム呼ぶ） */
-  syncClock() {
+  syncClock(dt) {
     if (!this.ctx) return;
     const pa = this.ctx.currentTime - performance.now() / 1000;
     if (!this._paInit || !isFinite(this.pa)) { this.pa = pa; this._paInit = true; return; }
     const diff = pa - this.pa;
-    // 大きく飛んだら即追従、ふだんは緩やかに均して時計のジッタを消す
-    if (Math.abs(diff) > 0.05) this.pa = pa;
-    else this.pa += diff * 0.05;
+    // 大きく飛んだら即追従、ふだんは緩やかに均して時計のジッタを消す。
+    // ならし具合はフレーム数ではなく経過時間で決める（60Hzでも360Hzでも同じ効き）
+    if (Math.abs(diff) > 0.05) { this.pa = pa; return; }
+    const k = (dt > 0 && isFinite(dt)) ? 1 - Math.exp(-dt / 0.33) : 0.05;
+    this.pa += diff * k;
   }
 
   async load(urls, onProgress) {

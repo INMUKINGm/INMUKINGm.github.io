@@ -1,3 +1,13 @@
+/* 同梱の大髭（必要な字だけのサブセット）。入れていない端末でも出る。
+   元ファイルは本人の端末の J028-大髭113.ttf。tools/subset-oohige.py で作る。 */
+@font-face{
+  font-family:'Oohige';
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+  src:url(../assets/fonts/oohige-sub.woff2) format('woff2');
+}
+
 /* ===========================================================================
    MVBEAT — stylesheet
    =========================================================================== */
@@ -14,6 +24,7 @@
   --blur:saturate(150%) blur(18px);
   --easing:cubic-bezier(.2,.9,.25,1);
   --ui: "Zen Kaku Gothic New","Yu Gothic UI","Hiragino Sans",system-ui,sans-serif;
+  --brush: "Oohige","大髭","Hiragino Mincho ProN",serif;
   --num: "Chakra Petch","Bahnschrift","DIN Alternate",system-ui,sans-serif;
   --k:14px;          /* 面取りの大きさ */
   --k-s:8px;
