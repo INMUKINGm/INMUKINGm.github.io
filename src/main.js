@@ -1,15 +1,15 @@
 /* ===========================================================================
    main.js — 起動・メインループ・入力
    =========================================================================== */
-import { AudioEngine } from './audio.js?v=fd8d7e6d';
-import { VideoSync } from './video.js?v=fd8d7e6d';
-import { Gfx } from './gfx.js?v=fd8d7e6d';
-import { Renderer } from './render.js?v=fd8d7e6d';
-import { TaikoRenderer, toTaikoChart } from './taiko.js?v=fd8d7e6d';
-import { Game } from './play.js?v=fd8d7e6d';
-import { settings, getBest, saveBest } from './store.js?v=fd8d7e6d';
-import { SongSelect, MODES, DIFFS } from './select.js?v=fd8d7e6d';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=fd8d7e6d';
+import { AudioEngine } from './audio.js?v=ed970f5e';
+import { VideoSync } from './video.js?v=ed970f5e';
+import { Gfx } from './gfx.js?v=ed970f5e';
+import { Renderer } from './render.js?v=ed970f5e';
+import { TaikoRenderer, toTaikoChart } from './taiko.js?v=ed970f5e';
+import { Game } from './play.js?v=ed970f5e';
+import { settings, getBest, saveBest } from './store.js?v=ed970f5e';
+import { SongSelect, MODES, DIFFS } from './select.js?v=ed970f5e';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=ed970f5e';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');
@@ -197,7 +197,7 @@ function onSettingChange(k) {
   audio.setVolume(settings.volume);
   audio.setSfxVolume(settings.hitsound ? settings.hitvol : 0);
   if (k === 'quality') loadVideo(settings.quality).then(ok => { if (ok) startAttract(); });
-  if (game) game.lead = settings.scroll;
+  if (game) game.lead = settings.scroll * (game.speedMul || 1);
   setFpsMeter(settings.fpsMeter);
 }
 
