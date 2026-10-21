@@ -142,6 +142,29 @@ for (const o of biased) {
 }
 src.sort((a, b) => a.t - b.t);
 src = src.filter((o, i) => i === 0 || o.t - src[i - 1].t > 0.030);
+
+/* gridOnly: 音符の時刻を必ず16分の目に乗せる。
+   声ネタだらけでオンセットが散る曲は、生の時刻のまま置くと
+   拍から外れた変なリズムになるので、目ごとに音の勢いを集めて置き直す。 */
+if (T.gridOnly) {
+  const bucket = new Map();
+  for (const o of biased) {
+    if (o.t < MUSIC_START - 0.05 || o.t > MUSIC_END + 0.05) continue;
+    if (loudAt(o.t) < 0.10) continue;
+    const gi = gridIndex(o.t);
+    const d = Math.abs(o.t - (OFFSET + gi * GRID));
+    if (d > T.gridTol) continue;
+    // その目でいちばん強い音をその目の強さにする。
+    // 足し合わせると全部が最大値に張り付いて、強弱の差が消えてしまう。
+    const w = o.s * (1 - (d / T.gridTol) * 0.45);     // 目から遠い音は割り引く
+    const cur = bucket.get(gi);
+    if (!cur || w > cur.s) bucket.set(gi, { s: w, b: o.b });
+  }
+  src = [...bucket.entries()]
+    .map(([gi, v]) => ({ t: gridTime(+gi), s: v.s, b: v.b, gi: +gi, snapped: true, dev: 0 }))
+    .sort((a, b) => a.t - b.t);
+  console.log('gridOnly: 16分の目に乗せ直し ->', src.length, '個');
+}
 console.log('usable onsets =', src.length, '(from', A.onsets.length + ')');
 
 // 小節頭（16グリッド）の位相：低域アクセントの位置で決める
@@ -298,7 +321,9 @@ function assignLanes(list, cfg) {
 function addChords(notes, cfg) {
   const extra = [];
   let lastChord = -9;
-  const minSpace = cfg.id === 'ura' ? 0.34 : cfg.id === 'oni' ? 0.8 : 1.8;
+  // 同時押しの間隔。曲ごとに詰められるようにしてある
+  const minSpace = cfg.chordSpace != null ? cfg.chordSpace
+    : (cfg.id === 'ura' ? 0.34 : cfg.id === 'oni' ? 0.8 : 1.8);
   for (let i = 0; i < notes.length; i++) {
     const n = notes[i];
     if (n.type !== 0 || n.s < cfg.chordS) continue;

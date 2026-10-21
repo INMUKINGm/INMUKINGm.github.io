@@ -361,13 +361,17 @@ body.can-fs .res-grade{filter:none}
   padding-bottom:max(10px,env(safe-area-inset-bottom,0px))}
 
 /* FPS表示（設定でオンのときだけ出る） */
-#fps-meter{position:fixed;z-index:70;pointer-events:none;
+#fps-meter{position:fixed;z-index:54;pointer-events:none;
   right:calc(env(safe-area-inset-right,0px) + 12px);
   bottom:calc(env(safe-area-inset-bottom,0px) + 10px);
   padding:4px 9px;--k-s:6px;
   clip-path:polygon(var(--k-s) 0,100% 0,100% calc(100% - var(--k-s)),calc(100% - var(--k-s)) 100%,0 100%,0 var(--k-s));
   background:rgba(8,12,22,.66);font-family:var(--num);font-size:10.5px;font-weight:600;
   letter-spacing:.12em;color:rgba(158,244,255,.8);font-variant-numeric:tabular-nums}
+/* 下に帯のある画面では、その上に逃がす */
+body[data-screen="select"] #fps-meter,
+body[data-screen="result"] #fps-meter,
+body[data-screen="settings"] #fps-meter{bottom:calc(env(safe-area-inset-bottom,0px) + 58px)}
 
 /* ------------------------------------------- リザルトの大髭スタンプ */
 .res-stamp{margin-left:auto;align-self:center;font-style:normal;font-family:var(--brush);

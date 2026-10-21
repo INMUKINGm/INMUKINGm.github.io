@@ -134,7 +134,8 @@ export class TaikoRenderer {
     this.judgeX = Math.max(66, Math.min(w * 0.185, 270));
     this.judgeY = this.laneY;
     // 狭い画面は音符が重なるので、小さくしてスクロールも詰める
-    this.rSmall = Math.min(this.laneH * 0.27, w * 0.044);
+    this.rSmall0 = Math.min(this.laneH * 0.27, w * 0.044);
+    this.rSmall = this.rSmall0 * (this._sm || 1);
     this.rBig = this.rSmall * 1.5;
     this.leadMul = narrow ? 1.30 : 2.0;
   }
@@ -171,6 +172,9 @@ export class TaikoRenderer {
   // ------------------------------------------------------------------ 本体
   draw(g, dt) {
     if (!g) return;               // 終了と同時にフレームが来ても落ちないように
+    // 詰まった譜面は音符を小さくする（重なって読めなくなるのを防ぐ）
+    const sm = g.sizeMul || 1;
+    if (sm !== this._sm) { this._sm = sm; this.rSmall = this.rSmall0 * sm; this.rBig = this.rSmall * 1.5; }
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const t = g.gameTime;

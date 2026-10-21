@@ -33,6 +33,16 @@ export const JUDGE = JUDGE_SETS['4k'];
 
 const BIG_WINDOW = 0.045;   // 大音符を2キーで取るときの猶予
 
+/** 1秒あたりの音符数のいちばん多いところ（区間を切ったあとの実数で測る） */
+function chartPeak(notes) {
+  let peak = 0;
+  for (let i = 0; i < notes.length; i++) {
+    let j = i; while (j < notes.length && notes[j].t - notes[i].t < 1) j++;
+    if (j - i > peak) peak = j - i;
+  }
+  return peak;
+}
+
 export class Game {
   constructor(opt) {
     this.audio = opt.audio;
@@ -115,7 +125,13 @@ export class Game {
     this.beats = [];
     for (let t = s.gridOffset; t < s.duration; t += s.beat) if (t > 0) this.beats.push(t);
 
-    this.lead = this.set.scroll;
+    /* 詰まった譜面ほどスクロールを速くして、音符が重なって塊に見えるのを防ぐ。
+       距離は画面で決まっているので、lead（見えている時間）を縮めると
+       同じ間隔の音符どうしが画面の上で離れる。音符自体も少し小さくする。 */
+    const peak = Math.max(1, chartPeak(this.notes));
+    this.speedMul = Math.max(0.55, Math.min(1, 7.5 / peak));
+    this.sizeMul = Math.max(0.74, Math.min(1, 9.0 / peak));
+    this.lead = this.set.scroll * this.speedMul;
     const first = sec ? sec.start : s.musicStart;
     this.startAt = (this.set.intro && !sec) ? 0 : Math.max(0, first - 3.6);
     const lastN = this.notes.length ? this.notes[this.notes.length - 1] : null;

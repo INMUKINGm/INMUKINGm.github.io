@@ -19,37 +19,44 @@
     "window": null,
     "shortSec": 80,
     "tune": {
-      "gridTol": 0.046,
+      "gridTol": 0.055,
       "snapTol": 0.055,
       "keepUnaligned": 0.74,
       "windowTol": 0.046,
-      "windowRatio": 0.34
+      "windowRatio": 0.34,
+      "gridOnly": true
     },
     "diffs": {
       "normal": {
         "minGap": 0.33,
-        "minS": 0.52
+        "minS": 0.7,
+        "chordS": 0.95,
+        "chordSpace": 2.0
       },
       "hard": {
         "minGap": 0.21,
-        "minS": 0.33
+        "minS": 0.585,
+        "chordS": 0.8,
+        "chordSpace": 1.1
       },
       "oni": {
         "minGap": 0.132,
-        "minS": 0.06,
-        "chordS": 0.58
+        "minS": 0.5,
+        "chordS": 0.58,
+        "chordSpace": 0.52
       },
       "ura": {
         "minGap": 0.046,
-        "minS": 0.0,
-        "chordS": 0.14,
+        "minS": 0.36,
+        "chordS": 0.22,
         "holdGap": 1.4,
         "holdMax": 0.02,
         "densify": {
-          "gate": 0.09,
-          "maxGrids": 8,
-          "burst": 0.22
-        }
+          "gate": 0.48,
+          "maxGrids": 4,
+          "burst": 0.66
+        },
+        "chordSpace": 0.15
       }
     }
   }

@@ -4,7 +4,7 @@
    ・中央＝曲。選んでいるものだけが開いて4つの難易度タイルが出る
    ・左＝自己ベスト、右＝選択中の譜面の中身（密度グラフつき）
    =========================================================================== */
-import { settings, getBest } from './store.js?v=d7407b7e';
+import { settings, getBest } from './store.js?v=fd8d7e6d';
 
 export const MODES = [
   { id: '4k', name: '4レーン', en: '4 LANE', c1: '#1fe6ff', c2: '#6f8bff' },

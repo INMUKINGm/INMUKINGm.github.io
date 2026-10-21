@@ -43,7 +43,8 @@ export class Renderer {
       ? Math.min(w * 0.96, 580)
       : Math.min(w * 0.52, h * 0.76, 820);
     this.cx = w / 2;
-    this.noteH = (this.portrait ? 28 : 27) * Math.max(0.82, Math.min(1.5, h / 900));
+    this.noteH0 = (this.portrait ? 28 : 27) * Math.max(0.82, Math.min(1.5, h / 900));
+    this.noteH = this.noteH0 * (this._sm || 1);
   }
 
   /** 残り時間の比 d(1=出現, 0=判定線) から画面座標の倍率を返す */
@@ -79,6 +80,8 @@ export class Renderer {
   // ------------------------------------------------------------------ 本体
   draw(g, dt) {
     if (!g) return;               // 終了と同時にフレームが来ても落ちないように
+    const sm = g.sizeMul || 1;
+    if (sm !== this._sm) { this._sm = sm; this.noteH = this.noteH0 * sm; }
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const K = this.K = 0.25 + g.set.persp * 1.7;
@@ -90,10 +93,12 @@ export class Renderer {
     const topSc = this.persp(1, K).sc;
     const lx0 = this.laneX(-0.5, topSc), lx1 = this.laneX(3.5, topSc);
     const bx0 = this.laneX(-0.5, 1), bx1 = this.laneX(3.5, 1);
+    // 詰まった譜面ほど床を濃くして、明るい映像に音符が溶けないようにする
+    const dk = 1 + (1 - (g.sizeMul || 1)) * 1.9;
     const grd = c.createLinearGradient(0, this.horizonY, 0, this.judgeY);
     grd.addColorStop(0, 'rgba(8,14,26,0)');
-    grd.addColorStop(.45, 'rgba(8,14,26,.22)');
-    grd.addColorStop(1, 'rgba(6,10,20,.62)');
+    grd.addColorStop(.45, 'rgba(8,14,26,' + Math.min(.62, .22 * dk).toFixed(3) + ')');
+    grd.addColorStop(1, 'rgba(6,10,20,' + Math.min(.90, .62 * dk).toFixed(3) + ')');
     c.beginPath();
     c.moveTo(lx0, this.horizonY); c.lineTo(lx1, this.horizonY);
     c.lineTo(bx1, this.judgeY); c.lineTo(bx0, this.judgeY); c.closePath();

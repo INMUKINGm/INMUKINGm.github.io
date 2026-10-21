@@ -1,7 +1,7 @@
 /* ===========================================================================
    ui.js — 画面まわり（設定・リザルト描画）
    =========================================================================== */
-import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=d7407b7e';
+import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=fd8d7e6d';
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -13,6 +13,7 @@ export function showScreen(name) {
   if (el) el.classList.add('active');
   current = name;
   document.body.classList.toggle('playing', name === 'game');
+  document.body.dataset.screen = name;     // 画面ごとのすき間調整に使う
   return el;
 }
 export const currentScreen = () => current;

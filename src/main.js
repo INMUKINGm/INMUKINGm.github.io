@@ -1,15 +1,15 @@
 /* ===========================================================================
    main.js — 起動・メインループ・入力
    =========================================================================== */
-import { AudioEngine } from './audio.js?v=d7407b7e';
-import { VideoSync } from './video.js?v=d7407b7e';
-import { Gfx } from './gfx.js?v=d7407b7e';
-import { Renderer } from './render.js?v=d7407b7e';
-import { TaikoRenderer, toTaikoChart } from './taiko.js?v=d7407b7e';
-import { Game } from './play.js?v=d7407b7e';
-import { settings, getBest, saveBest } from './store.js?v=d7407b7e';
-import { SongSelect, MODES, DIFFS } from './select.js?v=d7407b7e';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=d7407b7e';
+import { AudioEngine } from './audio.js?v=fd8d7e6d';
+import { VideoSync } from './video.js?v=fd8d7e6d';
+import { Gfx } from './gfx.js?v=fd8d7e6d';
+import { Renderer } from './render.js?v=fd8d7e6d';
+import { TaikoRenderer, toTaikoChart } from './taiko.js?v=fd8d7e6d';
+import { Game } from './play.js?v=fd8d7e6d';
+import { settings, getBest, saveBest } from './store.js?v=fd8d7e6d';
+import { SongSelect, MODES, DIFFS } from './select.js?v=fd8d7e6d';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=fd8d7e6d';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');
@@ -320,6 +320,7 @@ function onJudge(j, d, n) {
 }
 
 function onFinish(res) {
+  const sg = lastPick.entry.song;
   const key = lastPick.mode + ':' + lastPick.entry.id + ':' + lastPick.diff;
   const prev = getBest(key);
   let isBest = false;
@@ -332,9 +333,9 @@ function onFinish(res) {
   const d = DIFFS.find(x => x.id === lastPick.diff);
   const m = MODES.find(x => x.id === lastPick.mode);
   showScreen('result');
-  requestAnimationFrame(() => renderResult(res, song, {
+  requestAnimationFrame(() => renderResult(res, sg, {
     name: (d ? d.jp : lastPick.diff) + '　/　' + m.name,
-    level: charts[lastPick.mode][lastPick.diff].level,
+    level: charts[sg.id][lastPick.mode][lastPick.diff].level,
     entry: lastPick.entry.name,
   }, isBest, prev));
   setTimeout(startAttract, 400);
