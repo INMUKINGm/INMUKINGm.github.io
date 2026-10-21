@@ -11,7 +11,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { Game } = await import(pathToFileURL(path.join(ROOT, 'src/play.js')).href);
 const { toTaikoChart } = await import(pathToFileURL(path.join(ROOT, 'src/taiko.js')).href);
-const song = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/song.json'), 'utf8'));
+const SONGS = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets/songs.json'), 'utf8'))
+  .filter(u => fs.existsSync(path.join(ROOT, u)));
 
 let CLOCK = 0;
 const audio = {
@@ -29,8 +30,8 @@ const settings = {
   intro: false, fx: 1, dim: 0.35, persp: 0.75, showFast: false,
 };
 
-function run(mode, file) {
-  let chart = JSON.parse(fs.readFileSync(path.join(ROOT, 'charts', file), 'utf8'));
+function run(song, mode, file) {
+  let chart = JSON.parse(fs.readFileSync(path.join(ROOT, 'charts', song.id, file), 'utf8'));
   if (mode === 'taiko') chart = toTaikoChart(chart, song);
   const g = new Game({
     audio, video, gfx, renderer: rd, song, settings,
@@ -49,9 +50,12 @@ function run(mode, file) {
 }
 
 let ng = 0;
-for (const mode of ['4k', 'taiko']) {
+for (const url of SONGS) {
+  const song = JSON.parse(fs.readFileSync(path.join(ROOT, url), 'utf8'));
+  console.log('■ ' + song.title + ' (' + song.id + ')');
+  for (const mode of ['4k', 'taiko']) {
   for (const f of ['normal.json', 'hard.json', 'oni.json', 'ura.json']) {
-    const r = run(mode, f);
+    const r = run(song, mode, f);
     const ok = r.score === 114514;
     if (!ok) ng++;
     console.log((ok ? '  OK ' : '  NG ') + mode.padEnd(6) + f.replace('.json', '').padEnd(8) +
@@ -59,6 +63,7 @@ for (const mode of ['4k', 'taiko']) {
       ' (素点' + r.pts + ' +全キメ' + r.sp + ' +全良' + r.ap + ' +フルコン' + r.fc + ')' +
       ' 配点済み ' + r.awarded + '/' + r.total +
       ' 大 ' + r.bigHits + '/' + r.bigCount);
+  }
   }
 }
 console.log(ng ? ng + ' 譜面が 114514 になりません' : 'すべて 114514 ちょうど');

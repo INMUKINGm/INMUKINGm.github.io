@@ -4,7 +4,7 @@
    ・中央＝曲。選んでいるものだけが開いて4つの難易度タイルが出る
    ・左＝自己ベスト、右＝選択中の譜面の中身（密度グラフつき）
    =========================================================================== */
-import { settings, getBest } from './store.js?v=7a7d998f';
+import { settings, getBest } from './store.js?v=d7407b7e';
 
 export const MODES = [
   { id: '4k', name: '4レーン', en: '4 LANE', c1: '#1fe6ff', c2: '#6f8bff' },
@@ -28,10 +28,10 @@ function scoreHtml(n) {
 
 export class SongSelect {
   constructor(opt) {
-    this.song = opt.song;
     this.charts = opt.charts;
     this.entries = opt.entries;
     this.onStart = opt.onStart;
+    this.onSong = opt.onSong;
     this.onBack = opt.onBack;
     this.mode = Math.max(0, MODES.findIndex(m => m.id === settings.lastMode));
     this.entry = 0;
@@ -69,16 +69,21 @@ export class SongSelect {
     if (want) requestAnimationFrame(() => this.drawDensity());
   }
 
+  /** いま選んでいる曲 */
+  get song() { return this.entries[this.entry].song; }
+
   key() { return MODES[this.mode].id + ':' + this.entries[this.entry].id + ':' + DIFFS[this.diff].id; }
-  chart() { return this.charts[MODES[this.mode].id][DIFFS[this.diff].id]; }
+  chartOf(ei, mi, di) { return this.charts[this.entries[ei].song.id][MODES[mi].id][DIFFS[di].id]; }
+  chart() { return this.chartOf(this.entry, this.mode, this.diff); }
   bestOf(mi, ei, di) { return getBest(MODES[mi].id + ':' + this.entries[ei].id + ':' + DIFFS[di].id); }
 
   /** 区間を考慮したノーツ数・密度 */
   stat(mi, ei, di) {
-    const ch = this.charts[MODES[mi].id][DIFFS[di].id];
-    const sec = this.entries[ei].section;
+    const ch = this.chartOf(ei, mi, di);
+    const e = this.entries[ei];
+    const sec = e.section;
     const notes = sec ? ch.notes.filter(a => a[0] >= sec.start && a[0] <= sec.end) : ch.notes;
-    const span = sec ? sec.end - sec.start : (this.song.musicEnd - this.song.musicStart);
+    const span = sec ? sec.end - sec.start : (e.song.musicEnd - e.song.musicStart);
     let peak = 0;
     for (let i = 0; i < notes.length; i++) {
       let j = i; while (j < notes.length && notes[j][0] - notes[i][0] < 1) j++;
@@ -94,12 +99,14 @@ export class SongSelect {
 
   // -------------------------------------------------------------- リスト
   buildList() {
-    const s = this.song;
-    this.elInner.innerHTML = this.entries.map((e, i) =>
-      '<div class="s-item" data-i="' + i + '">' +
+    this.elInner.innerHTML = this.entries.map((e, i) => {
+      const s = e.song;
+      return '<div class="s-item" data-i="' + i + '">' +
       '  <div class="s-bar"><span class="sb-mark"></span>' +
       '    <span class="sb-idx">' + String(i + 1).padStart(2, '0') + '</span>' +
-      '    <span class="sb-name">' + e.name + '</span><span class="sb-meta">' + e.sub + '</span></div>' +
+      '    <span class="sb-name">' + s.title + '</span>' +
+      '    <span class="sb-sec">' + e.name + '</span>' +
+      '    <span class="sb-meta">' + e.sub + '</span></div>' +
       '  <div class="s-card bev"><div class="sc-in bev-in">' +
       '    <div class="sc-top">' +
       '      <button class="sc-menu" type="button" aria-label="記録と譜面の詳細をひらく">' +
@@ -114,7 +121,7 @@ export class SongSelect {
       '    </div>' +
       '    <div class="s-diffs"></div>' +
       '  </div></div>' +
-      '</div>').join('');
+      '</div>'; }).join('');
     this.elInner.querySelectorAll('.s-item').forEach(el => {
       el.addEventListener('click', (ev) => {
         if (ev.target.closest('.sc-menu')) { this.toggleDrawer(); return; }
@@ -275,6 +282,9 @@ export class SongSelect {
     this.buildTiles();
     this.buildRecords();
     requestAnimationFrame(() => this.center());
+
+    // 曲が変わったら、背景のMVと音も入れ替えてもらう
+    if (this._lastSong !== this.song) { this._lastSong = this.song; this.onSong && this.onSong(this.song); }
   }
 
   center() {

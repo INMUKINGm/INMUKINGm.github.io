@@ -1,0 +1,56 @@
+{
+  "_": "曲ごとの手で決める値。bpm を null にすると tempo.json から。tune はグリッドのゆるさ（声ネタだらけの曲は広げる）。",
+  "inmuking": {
+    "title": "INMU KING",
+    "subtitle": "野獣と化した先輩 / SPECIAL SORRY",
+    "artist": "MUSIC VIDEO",
+    "bpm": 133.0,
+    "window": [
+      20,
+      232
+    ],
+    "shortSec": 92
+  },
+  "yajuandu": {
+    "title": "YAJU & U",
+    "subtitle": "ヤジュセンパイイキスギ / Cartoon",
+    "artist": "MUSIC VIDEO",
+    "bpm": 100.062,
+    "window": null,
+    "shortSec": 80,
+    "tune": {
+      "gridTol": 0.046,
+      "snapTol": 0.055,
+      "keepUnaligned": 0.74,
+      "windowTol": 0.046,
+      "windowRatio": 0.34
+    },
+    "diffs": {
+      "normal": {
+        "minGap": 0.33,
+        "minS": 0.52
+      },
+      "hard": {
+        "minGap": 0.21,
+        "minS": 0.33
+      },
+      "oni": {
+        "minGap": 0.132,
+        "minS": 0.06,
+        "chordS": 0.58
+      },
+      "ura": {
+        "minGap": 0.046,
+        "minS": 0.0,
+        "chordS": 0.14,
+        "holdGap": 1.4,
+        "holdMax": 0.02,
+        "densify": {
+          "gate": 0.09,
+          "maxGrids": 8,
+          "burst": 0.22
+        }
+      }
+    }
+  }
+}

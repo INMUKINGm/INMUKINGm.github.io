@@ -14,10 +14,36 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 
 
-const A = JSON.parse(fs.readFileSync(ROOT + '/work/analysis.json', 'utf8'));
-const BIAS = JSON.parse(fs.readFileSync(ROOT + '/work/bias.json', 'utf8')).biasMs / 1000;
+const SONG = process.env.SONG || process.argv.slice(2).find(a => /^[a-z0-9_-]+$/i.test(a)) || 'inmuking';
+const WORK = path.join(ROOT, 'work', SONG);
+const OUTDIR = path.join(ROOT, 'assets', 'songs', SONG);
+const CHARTDIR = path.join(ROOT, 'charts', SONG);
+fs.mkdirSync(OUTDIR, { recursive: true });
+fs.mkdirSync(CHARTDIR, { recursive: true });
 
-const BPM = 133.000;
+const CFG = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'songs.config.json'), 'utf8'))[SONG];
+if (!CFG) throw new Error('tools/songs.config.json に ' + SONG + ' がありません');
+
+const A = JSON.parse(fs.readFileSync(path.join(WORK, 'analysis.json'), 'utf8'));
+const BIAS = JSON.parse(fs.readFileSync(path.join(WORK, 'bias.json'), 'utf8')).biasMs / 1000;
+const TEMPO = fs.existsSync(path.join(WORK, 'tempo.json'))
+  ? JSON.parse(fs.readFileSync(path.join(WORK, 'tempo.json'), 'utf8')) : null;
+
+// BPM は設定で決め打ちできる。null なら位相ロックで出した値を使う
+const BPM = CFG.bpm != null ? CFG.bpm : +((TEMPO ? TEMPO.bpm : A.bpm).toFixed(3));
+console.log('[' + SONG + '] BPM =', BPM, CFG.bpm != null ? '(設定で固定)' : '(解析から)');
+
+/* 曲ごとの調整つまみ。音がきれいに格子に乗る曲は既定のまま、
+   声ネタだらけでゆるい曲は広げる。 */
+const T = {
+  gridTol: 0.030,        // これ以内なら「グリッドに乗っている」
+  snapTol: 0.040,        // これ以内ならグリッドに吸着させる
+  keepUnaligned: 0.58,   // グリッド外でも、この強さなら残す
+  windowTol: 0.025,      // 音楽区間を探すときの一致幅
+  windowRatio: 0.62,     // 2秒のうちこの割合が乗っていれば音楽
+  ...(CFG.tune || {}),
+};
+console.log('[' + SONG + '] tune =', JSON.stringify(T));
 const BEAT = 60 / BPM;               // 0.451128s
 const DIV = 4;                       // 16分
 const GRID = BEAT / DIV;             // 0.112782s
@@ -64,7 +90,13 @@ function fitOffset(sample) {
   }
   return ((best % GRID) + GRID) % GRID;
 }
-const OFFSET = fitOffset(biased.filter(o => o.t > 20 && o.t < 232 && o.s > 0.45));
+// グリッドを合わせる区間。設定が無ければ曲の前後を1割ずつ落として自動で決める
+const WIN = CFG.window || (() => {
+  const a = (TEMPO ? TEMPO.musicStart : 0), b = (TEMPO ? TEMPO.musicEnd : A.duration);
+  const m = (b - a) * 0.08;
+  return [a + m, b - m];
+})();
+const OFFSET = fitOffset(biased.filter(o => o.t > WIN[0] && o.t < WIN[1] && o.s > 0.45));
 const gridIndex = (t) => Math.round((t - OFFSET) / GRID);
 const gridTime = (i) => +(OFFSET + i * GRID).toFixed(4);
 const devOf = (t) => { let r = (t - OFFSET) % GRID; if (r > GRID / 2) r -= GRID; if (r < -GRID / 2) r += GRID; return r; };
@@ -76,8 +108,8 @@ function musicWindow() {
   for (let t = 0; t < A.duration; t += step) {
     const os = biased.filter(o => o.t >= t && o.t < t + step && o.s > 0.45);
     if (os.length < 3) { hits.push(0); continue; }
-    let on = 0; for (const o of os) if (Math.abs(devOf(o.t)) < 0.025) on++;
-    hits.push((on / os.length >= 0.62 && loudAt(t + 1) > 0.12) ? 1 : 0);
+    let on = 0; for (const o of os) if (Math.abs(devOf(o.t)) < T.windowTol) on++;
+    hits.push((on / os.length >= T.windowRatio && loudAt(t + 1) > 0.12) ? 1 : 0);
   }
   let bs = 0, bl = 0, cs = -1, miss = 0;
   for (let i = 0; i < hits.length; i++) {
@@ -96,14 +128,14 @@ console.log('grid offset =', OFFSET.toFixed(5));
 console.log('music window =', MUSIC_START.toFixed(2), '-', MUSIC_END.toFixed(2), 's');
 
 // ---------------------------------------------------------------- ノイズ除去 + スナップ
-const SNAP_TOL = 0.040;
+const SNAP_TOL = T.snapTol;
 let src = [];
 for (const o of biased) {
   if (o.t < MUSIC_START - 0.05 || o.t > MUSIC_END + 0.05) continue;
   const dev = devOf(o.t);
-  const aligned = Math.abs(dev) <= 0.030;
+  const aligned = Math.abs(dev) <= T.gridTol;
   // グリッドに乗っていない弱い音＝環境音/声のゆらぎなので捨てる
-  if (!aligned && o.s < 0.58) continue;
+  if (!aligned && o.s < T.keepUnaligned) continue;
   if (loudAt(o.t) < 0.10) continue;
   const snap = Math.abs(dev) <= SNAP_TOL;
   src.push({ t: snap ? gridTime(gridIndex(o.t)) : o.t, s: o.s, b: o.b, gi: gridIndex(o.t), snapped: snap, dev: dev });
@@ -136,6 +168,21 @@ for (const c of A.cuts) {
   if (best && best.s >= 0.40) {
     if (!cutTimes.length || best.t - cutTimes[cutTimes.length - 1] > 1.4) cutTimes.push(best.t);
   }
+}
+// 場面転換の無いMV（一枚絵のアニメなど）は、小節頭のいちばん強い音を
+// 代わりの「決めどころ」にする。これが無いと全キメの810点が永久に取れない。
+if (!cutTimes.length) {
+  const bars = src.filter(o => o.snapped && ((o.gi - barPhase) % 16 + 16) % 16 === 0);
+  bars.sort((a, b) => b.s - a.s);
+  const picked = [];
+  for (const o of bars) {
+    if (picked.some(p => Math.abs(p - o.t) < 3.2)) continue;
+    picked.push(o.t);
+    if (picked.length >= 48) break;
+  }
+  picked.sort((a, b) => a - b);
+  cutTimes.push(...picked);
+  console.log('シーンカットが無いので小節頭のアクセントを代用:', cutTimes.length);
 }
 const cutKey = (t) => t.toFixed(4);
 const cutSet = new Set(cutTimes.map(cutKey));
@@ -297,6 +344,11 @@ function addHolds(notes, cfg) {
 }
 
 // ---------------------------------------------------------------- 生成
+// 曲ごとの難易度の上書き（音の強さの散らばりが曲で違うので）
+if (CFG.diffs) {
+  for (const d of DIFFS) if (CFG.diffs[d.id]) Object.assign(d, CFG.diffs[d.id]);
+}
+
 const manifestDiffs = [];
 for (const cfg of DIFFS) {
   _seed = 0x9e3779b9;
@@ -324,17 +376,20 @@ for (const cfg of DIFFS) {
     // [時刻, レーン, 種別(0tap 1hold 2cut), 長さ, 帯域(0低 1中 2高 -1不明)]
     notes: notes.map(n => [+n.t.toFixed(4), n.lane, n.type, n.dur, n.b]),
   };
-  fs.writeFileSync(ROOT + '/charts/' + cfg.id + '.json', JSON.stringify(out));
+  fs.writeFileSync(path.join(CHARTDIR, cfg.id + '.json'), JSON.stringify(out));
   manifestDiffs.push({ id: cfg.id, name: cfg.name, level: level, count: notes.length, nps: out.nps, maxNps: maxNps, holds: holds, cuts: cuts });
   console.log(cfg.name.padEnd(7), 'Lv' + String(level).padStart(2),
     String(notes.length).padStart(4) + ' notes  nps ' + out.nps.toFixed(2).padStart(5) +
     '  peak ' + String(maxNps).padStart(2) + '/s  hold ' + String(holds).padStart(3) + '  cut ' + String(cuts).padStart(3));
 }
 
+const rel = 'assets/songs/' + SONG + '/';
 const manifest = {
-  title: 'INMU KING',
-  subtitle: '野獣と化した先輩 / SPECIAL SORRY',
-  artist: 'MUSIC VIDEO',
+  id: SONG,
+  title: CFG.title,
+  subtitle: CFG.subtitle,
+  artist: CFG.artist || 'MUSIC VIDEO',
+  shortSec: CFG.shortSec || 92,
   bpm: BPM,
   duration: A.duration,
   gridOffset: +OFFSET.toFixed(5),
@@ -343,12 +398,13 @@ const manifest = {
   barPhase: barPhase,
   musicStart: +MUSIC_START.toFixed(3),
   musicEnd: +MUSIC_END.toFixed(3),
-  video: { hi: 'assets/mv_1080.mp4', lo: 'assets/mv_720.mp4', cover: 'assets/cover.jpg' },
-  audio: { m4a: 'assets/song.m4a', ogg: 'assets/song.ogg' },
+  video: { hi: rel + 'mv_1080.mp4', lo: rel + 'mv_720.mp4', cover: rel + 'cover.jpg' },
+  audio: { m4a: rel + 'song.m4a', ogg: rel + 'song.ogg' },
   cuts: A.cuts,
   cutNotes: cutTimes.map(t => +t.toFixed(4)),
   difficulties: manifestDiffs,
   vis: A.vis,
 };
-fs.writeFileSync(ROOT + '/assets/song.json', JSON.stringify(manifest));
-console.log('wrote assets/song.json', (fs.statSync(ROOT + '/assets/song.json').size / 1024).toFixed(0) + 'KB');
+const mpath = path.join(OUTDIR, 'song.json');
+fs.writeFileSync(mpath, JSON.stringify(manifest));
+console.log('wrote ' + rel + 'song.json', (fs.statSync(mpath).size / 1024).toFixed(0) + 'KB');

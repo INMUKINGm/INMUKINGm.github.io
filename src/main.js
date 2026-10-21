@@ -1,15 +1,15 @@
 /* ===========================================================================
    main.js — 起動・メインループ・入力
    =========================================================================== */
-import { AudioEngine } from './audio.js?v=7a7d998f';
-import { VideoSync } from './video.js?v=7a7d998f';
-import { Gfx } from './gfx.js?v=7a7d998f';
-import { Renderer } from './render.js?v=7a7d998f';
-import { TaikoRenderer, toTaikoChart } from './taiko.js?v=7a7d998f';
-import { Game } from './play.js?v=7a7d998f';
-import { settings, getBest, saveBest } from './store.js?v=7a7d998f';
-import { SongSelect, MODES, DIFFS } from './select.js?v=7a7d998f';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=7a7d998f';
+import { AudioEngine } from './audio.js?v=d7407b7e';
+import { VideoSync } from './video.js?v=d7407b7e';
+import { Gfx } from './gfx.js?v=d7407b7e';
+import { Renderer } from './render.js?v=d7407b7e';
+import { TaikoRenderer, toTaikoChart } from './taiko.js?v=d7407b7e';
+import { Game } from './play.js?v=d7407b7e';
+import { settings, getBest, saveBest } from './store.js?v=d7407b7e';
+import { SongSelect, MODES, DIFFS } from './select.js?v=d7407b7e';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=d7407b7e';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');
@@ -18,17 +18,20 @@ const gfx = new Gfx($('#gl'), videoEl);
 const rd4k = new Renderer($('#fx'));
 const rdTaiko = new TaikoRenderer($('#fx'));
 
-let song = null;
-let charts = { '4k': {}, taiko: {} };
-let entries = [];
-let game = null, select = null, lastPick = null;
+let songs = [];                 // 読み込んだ曲（マニフェスト）
+let song = null;                // いま媒体を読んである曲
+let charts = {};                // charts[曲id][モード][難易度]
+let entries = [];               // 曲 × 区間 の一覧
+let game = null, select = null, lastPick = null, swapTimer = 0;
 let attract = { on: false, next: 0 };
 
 window.BEAST = window.MVBEAT = {
   audio, video, gfx, settings,
   get game() { return game; },
   get song() { return song; },
+  get songs() { return songs; },
   get charts() { return charts; },
+  get entries() { return entries; },
   get select() { return select; },
 };
 
@@ -40,16 +43,29 @@ async function boot() {
   const step = (p, m) => { bar.style.width = (p * 100).toFixed(1) + '%'; txt.textContent = m; };
 
   try {
-    step(0.03, '譜面データを読み込み中…');
-    song = await (await fetch('assets/song.json')).json();
+    step(0.03, '曲データを読み込み中…');
+    const list = await (await fetch('assets/songs.json')).json();
+    for (const url of list) {
+      try {
+        const sg = await (await fetch(url)).json();
+        if (!sg.id) sg.id = url.split('/').slice(-2)[0];
+        songs.push(sg);
+      } catch (e) { console.warn('[beast] 曲を読めません:', url, e); }
+    }
+    if (!songs.length) throw new Error('assets/songs.json の曲を1つも読めませんでした');
 
     step(0.10, '譜面を展開中…');
-    for (const d of song.difficulties) {
-      const ch = await (await fetch('charts/' + d.id + '.json')).json();
-      charts['4k'][d.id] = ch;
-      charts.taiko[d.id] = toTaikoChart(ch, song);
+    for (const sg of songs) {
+      charts[sg.id] = { '4k': {}, taiko: {} };
+      const base = 'charts/' + sg.id + '/';
+      for (const d of sg.difficulties) {
+        const ch = await (await fetch(base + d.id + '.json')).json();
+        charts[sg.id]['4k'][d.id] = ch;
+        charts[sg.id].taiko[d.id] = toTaikoChart(ch, sg);
+      }
+      entries.push(...buildEntries(sg));
     }
-    entries = buildEntries(song);
+    song = songs[0];
 
     step(0.16, 'グラフィックスを初期化中…');
     if (!gfx.init()) {
@@ -61,7 +77,7 @@ async function boot() {
     resize();
 
     step(0.20, '楽曲を読み込み中…');
-    await audio.load(['assets/song.m4a', 'assets/song.ogg'], p => step(0.20 + p * 0.55, '楽曲を読み込み中… ' + Math.round(p * 100) + '%'));
+    await loadAudio(song, p => step(0.20 + p * 0.55, '楽曲を読み込み中… ' + Math.round(p * 100) + '%'));
 
     step(0.78, 'MV を読み込み中…');
     await loadVideo(settings.quality);
@@ -77,18 +93,41 @@ async function boot() {
   requestAnimationFrame(loop);
 }
 
-/** 曲リストの中身。フル と、終盤から最後までのショート */
+/** 曲リストの中身。曲ごとに フル と、終盤から最後までのショート */
 function buildEntries(s) {
   const barLen = s.grid * 16;
   const b0 = s.gridOffset + s.barPhase * s.grid;
-  let start = s.musicEnd - 92;
+  let start = s.musicEnd - (s.shortSec || 92);
   start = b0 + Math.round((start - b0) / barLen) * barLen;
   start = Math.max(s.musicStart, start);
   const end = s.musicEnd + 0.3;
   return [
-    { id: 'full', name: 'フルバージョン', sub: fmtTime(s.musicEnd - s.musicStart), section: null },
-    { id: 'short', name: 'ショートバージョン', sub: fmtTime(end - start), section: { start: start, end: end } },
+    { id: s.id + ':full', song: s, name: 'フルバージョン',
+      sub: fmtTime(s.musicEnd - s.musicStart), section: null },
+    { id: s.id + ':short', song: s, name: 'ショートバージョン',
+      sub: fmtTime(end - start), section: { start: start, end: end } },
   ];
+}
+
+/** 曲の音を読み込む（曲を切り替えたときだけ実際に読む） */
+async function loadAudio(sg, onProgress) {
+  if (audio._songId === sg.id && audio.buffer) return;
+  await audio.load([sg.audio.m4a, sg.audio.ogg], onProgress);
+  audio._songId = sg.id;
+}
+
+/** 選んだ曲の音と映像をそろえる。重いので、必要なときだけ読む */
+let mediaBusy = null;
+async function useSong(sg, onProgress) {
+  if (!sg || (song === sg && audio._songId === sg.id)) return;
+  if (mediaBusy) await mediaBusy.catch(() => {});
+  mediaBusy = (async () => {
+    song = sg;
+    await loadAudio(sg, onProgress);
+    await loadVideo(settings.quality);
+    setupTitleCard();
+  })();
+  try { await mediaBusy; } finally { mediaBusy = null; }
 }
 
 /** 画質に応じて映像を読み込む。1080p が無い環境では 720p に落ちる
@@ -109,22 +148,34 @@ async function loadVideo(quality) {
   return false;
 }
 
-function setupUI() {
+function setupTitleCard() {
   $('#jacket').src = song.video.cover;
   $('#t-title').textContent = song.title;
   $('#t-sub').textContent = song.subtitle;
   $('#t-bpm').textContent = 'BPM ' + song.bpm;
   $('#t-len').textContent = fmtTime(song.musicEnd - song.musicStart);
-  $('#t-cuts').textContent = song.cutNotes.length + ' CUT';
+  $('#t-cuts').textContent = songs.length > 1 ? songs.length + ' SONGS' : song.cutNotes.length + ' CUT';
+}
+
+function setupUI() {
+  setupTitleCard();
 
   $$('[data-go]').forEach(b => b.addEventListener('click', () => go(b.dataset.go)));
   buildSettings(onSettingChange, audio);
   setFpsMeter(settings.fpsMeter);
 
   select = new SongSelect({
-    song: song, charts: charts, entries: entries,
+    charts: charts, entries: entries,
     onStart: startGame,
     onBack: () => go('title'),
+    onSong: (sg) => {
+      // 選び直しのたびに読むと重いので、落ち着いてから差し替える
+      clearTimeout(swapTimer);
+      swapTimer = setTimeout(() => {
+        if (game && game.running) return;
+        useSong(sg).then(() => { if (currentScreen() === 'select') startAttract(); });
+      }, 420);
+    },
   });
 
   $('#pz-resume').addEventListener('click', () => resumeGame());
@@ -166,8 +217,20 @@ async function startGame(pick) {
   // タッチ端末は、この操作のうちに全画面へ入る（あとからだと許可されない）
   if (document.body.classList.contains('touch')) enterFullscreen();
   stopAttract();
+  clearTimeout(swapTimer);
+
+  // 別の曲なら、始める前に音と映像を入れ替える
+  const sg = pick.entry.song;
+  if (song !== sg || audio._songId !== sg.id) {
+    const bar = $('#load-fill'), txt = $('#load-txt');
+    showScreen('load');
+    bar.style.width = '4%'; txt.textContent = sg.title + ' を読み込み中…';
+    await useSong(sg, p => { bar.style.width = (6 + p * 88).toFixed(1) + '%'; });
+    bar.style.width = '100%';
+  }
+
   const taiko = pick.mode === 'taiko';
-  const chart = charts[pick.mode][pick.diff];
+  const chart = charts[sg.id][pick.mode][pick.diff];
   const mods = {
     auto: $('#mod-auto').checked,
     mirror: $('#mod-mirror').checked,
@@ -193,7 +256,7 @@ async function startGame(pick) {
 
   game = new Game({
     audio: audio, video: video, gfx: gfx, renderer: rd,
-    song: song, chart: chart, settings: settings, mods: mods,
+    song: sg, chart: chart, settings: settings, mods: mods,
     mode: pick.mode, section: pick.entry.section,
     hooks: { onJudge: onJudge, onFinish: onFinish },
   });

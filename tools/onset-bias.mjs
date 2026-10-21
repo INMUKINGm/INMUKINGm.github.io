@@ -21,9 +21,11 @@ function readWav(file) {
   return { fmt, x };
 }
 
-const { fmt, x } = readWav(ROOT + '/work/song.wav');
+const SONG = process.env.SONG || process.argv.slice(2).find(a => /^[a-z0-9_-]+$/i.test(a)) || 'inmuking';
+const WORK = path.join(ROOT, 'work', SONG);
+const { fmt, x } = readWav(path.join(WORK, 'song.wav'));
 const SR = fmt.sampleRate;
-const d = JSON.parse(fs.readFileSync(ROOT + '/work/analysis.json', 'utf8'));
+const d = JSON.parse(fs.readFileSync(path.join(WORK, 'analysis.json'), 'utf8'));
 
 // 1ms 窓の短時間エネルギー
 const W = Math.round(SR * 0.001);
@@ -53,4 +55,4 @@ const q1 = biases[Math.floor(biases.length * 0.25)], q3 = biases[Math.floor(bias
 console.log('samples:', biases.length);
 console.log('bias median = ' + med.toFixed(2) + 'ms   IQR = ' + q1.toFixed(2) + ' .. ' + q3.toFixed(2) + 'ms');
 console.log('→ onset時刻に ' + med.toFixed(2) + 'ms を加えると実際のアタックに一致');
-fs.writeFileSync(ROOT + '/work/bias.json', JSON.stringify({ biasMs: +med.toFixed(2), n: biases.length }));
+fs.writeFileSync(path.join(WORK, 'bias.json'), JSON.stringify({ biasMs: +med.toFixed(2), n: biases.length }));

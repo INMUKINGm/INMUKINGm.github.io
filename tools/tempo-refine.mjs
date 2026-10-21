@@ -4,7 +4,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-const d = JSON.parse(fs.readFileSync(ROOT + '/work/analysis.json', 'utf8'));
+const SONG = process.env.SONG || process.argv.slice(2).find(a => /^[a-z0-9_-]+$/i.test(a)) || 'inmuking';
+const WORK = path.join(ROOT, 'work', SONG);
+const d = JSON.parse(fs.readFileSync(path.join(WORK, 'analysis.json'), 'utf8'));
 
 // 音楽が鳴っている区間だけを使う（会話/環境音の誤検出を除外）
 const smooth = (arr, w) => arr.map((_, i) => {
@@ -82,9 +84,9 @@ for (let k = 0; k < 4; k++) {
 const barStart = off + bestBar * beatP;
 console.log('bar origin =', (barStart % (beatP * 4)).toFixed(4), 'beat =', beatP.toFixed(5));
 
-fs.writeFileSync(ROOT + '/work/tempo.json', JSON.stringify({
+fs.writeFileSync(path.join(WORK, 'tempo.json'), JSON.stringify({
   bpm: +b.bpm.toFixed(4), gridOffset: +off.toFixed(5), sixteenth: +b.period.toFixed(5),
   beat: +beatP.toFixed(5), barOrigin: +(barStart % (beatP * 4)).toFixed(5),
   musicStart: +t0.toFixed(3), musicEnd: +t1.toFixed(3), lock: +b.mag.toFixed(4),
 }, null, 2));
-console.log('wrote work/tempo.json');
+console.log('wrote work/' + SONG + '/tempo.json');

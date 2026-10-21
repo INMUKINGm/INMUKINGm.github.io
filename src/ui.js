@@ -1,7 +1,7 @@
 /* ===========================================================================
    ui.js — 画面まわり（設定・リザルト描画）
    =========================================================================== */
-import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=7a7d998f';
+import { settings, resetSettings, DEFAULT_SETTINGS } from './store.js?v=d7407b7e';
 
 export const $ = (s, r = document) => r.querySelector(s);
 export const $$ = (s, r = document) => [...r.querySelectorAll(s)];

@@ -69,7 +69,9 @@ export class Game {
     this.chartInfo = opt.chart;
     this.total = this.notes.length;
     this.bigCount = this.notes.filter(n => n.type === 2).length;
-    const budget = SCORE_TOTAL - SCORE_FC - SCORE_AP - SCORE_SP - SCORE_BIG * this.bigCount;
+    // 大/CUT が1つも無い譜面では「全キメ」が取れないので、その810点は素点に回す
+    const spPot = this.bigCount > 0 ? SCORE_SP : 0;
+    const budget = SCORE_TOTAL - SCORE_FC - SCORE_AP - spPot - SCORE_BIG * this.bigCount;
     this.noteBudget = Math.max(0, budget);
     this.base = Math.floor(this.noteBudget / Math.max(1, this.total));
     this.rem = this.noteBudget - this.base * this.total;

@@ -310,7 +310,7 @@ export class TaikoRenderer {
     c.shadowColor = col.glow; c.shadowBlur = r * (big ? .75 : .55);
     c.lineWidth = Math.max(2, r * (kind === KA ? .22 : .13));
     c.strokeStyle = kind === KA ? col.core : col.lite;
-    c.beginPath(); c.arc(x, y, r - c.lineWidth * .5, 0, 6.2832); c.stroke();
+    c.beginPath(); c.arc(x, y, Math.max(0.5, r - c.lineWidth * .5), 0, 6.2832); c.stroke();
     c.restore();
 
     if (kind === KA) {

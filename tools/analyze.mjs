@@ -7,15 +7,16 @@
 // ===========================================================================
 import fs from 'node:fs';
 import path from 'node:path';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 
 
-const WAV = path.join(ROOT, 'work', 'song.wav');
-const CUTS = path.join(ROOT, 'work', 'cuts.txt');
-const OUT = path.join(ROOT, 'work', 'analysis.json');
+const SONG = process.env.SONG || process.argv.slice(2).find(a => /^[a-z0-9_-]+$/i.test(a)) || 'inmuking';
+const WORK = path.join(ROOT, 'work', SONG);
+const WAV = path.join(WORK, 'song.wav');
+const CUTS = path.join(WORK, 'cuts.txt');
+const OUT = path.join(WORK, 'analysis.json');
 
 // ---------------------------------------------------------------- WAV 読み込み
 function readWav(file) {

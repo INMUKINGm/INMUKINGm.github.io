@@ -31,16 +31,24 @@ const FFMPEG = findFF('ffmpeg');
 const FFPROBE = findFF('ffprobe');
 console.log('[build] ffmpeg:', FFMPEG);
 
-let src = process.argv[2];
-if (!src && fs.existsSync(SRCFILE)) src = fs.readFileSync(SRCFILE, 'utf8').trim();
+const argv = process.argv.slice(2);
+const SONG = argv.find(a => /^[a-z0-9_-]+$/i.test(a) && !fs.existsSync(a)) || 'inmuking';
+let src = argv.find(a => fs.existsSync(a) && /\.(mp4|mkv|webm|mov|m4v)$/i.test(a));
+
+const WORK_S = path.join(WORK, SONG);
+const OUT_S = path.join(ASSETS, 'songs', SONG);
+const SRCFILE_S = path.join(WORK_S, 'source.txt');
+fs.mkdirSync(WORK_S, { recursive: true });
+fs.mkdirSync(OUT_S, { recursive: true });
+fs.mkdirSync(path.join(ROOT, 'charts', SONG), { recursive: true });
+
+if (!src && fs.existsSync(SRCFILE_S)) src = fs.readFileSync(SRCFILE_S, 'utf8').trim();
 if (!src || !fs.existsSync(src)) {
-  console.error('MV のパスを指定してください:  node tools/build.mjs "C:\\path\\to\\MV.mp4"');
+  console.error('使い方:  node tools/build.mjs <曲id> "C:\path\to\MV.mp4"');
   process.exit(1);
 }
-fs.mkdirSync(WORK, { recursive: true });
-fs.mkdirSync(ASSETS, { recursive: true });
-fs.mkdirSync(path.join(ROOT, 'charts'), { recursive: true });
-fs.writeFileSync(SRCFILE, src);
+fs.writeFileSync(SRCFILE_S, src);
+console.log('[build] song  :', SONG);
 console.log('[build] source:', src);
 
 const run = (args, label) => {
@@ -49,36 +57,36 @@ const run = (args, label) => {
 };
 
 // 1) 解析用 WAV
-run(['-v', 'error', '-y', '-i', src, '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', path.join(WORK, 'song.wav')], '解析用 WAV を書き出し');
+run(['-v', 'error', '-y', '-i', src, '-map', '0:a:0', '-vn', '-ac', '1', '-ar', '44100', '-c:a', 'pcm_s16le', path.join(WORK_S, 'song.wav')], '解析用 WAV を書き出し');
 
 // 2) シーンカット検出
 console.log('[build] シーンカットを検出');
 {
   const out = execSync('"' + FFMPEG + '" -hide_banner -y -i "' + src +
-    '" -filter_complex "select=\'gt(scene,0.25)\',metadata=print:file=-" -an -f null - 2>nul', { shell: 'cmd.exe', maxBuffer: 1 << 26 }).toString();
+    '" -filter_complex "[0:v:0]select=\'gt(scene,0.25)\',metadata=print:file=-" -an -f null - 2>nul', { shell: 'cmd.exe', maxBuffer: 1 << 26 }).toString();
   const cuts = [...out.matchAll(/pts_time:([0-9.]+)/g)].map(m => m[1]);
-  fs.writeFileSync(path.join(WORK, 'cuts.txt'), cuts.join('\n'));
+  fs.writeFileSync(path.join(WORK_S, 'cuts.txt'), cuts.join('\n'));
   console.log('[build]   cuts =', cuts.length);
 }
 
 // 3) 配信用の音と映像
-run(['-v', 'error', '-y', '-i', src, '-vn', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', path.join(ASSETS, 'song.m4a')], '音声(m4a)');
-run(['-v', 'error', '-y', '-i', src, '-vn', '-c:a', 'libopus', '-b:a', '160k', path.join(ASSETS, 'song.ogg')], '音声(ogg)');
+run(['-v', 'error', '-y', '-i', src, '-map', '0:a:0', '-vn', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', path.join(OUT_S, 'song.m4a')], '音声(m4a)');
+run(['-v', 'error', '-y', '-i', src, '-map', '0:a:0', '-vn', '-c:a', 'libopus', '-b:a', '160k', path.join(OUT_S, 'song.ogg')], '音声(ogg)');
 
 const dur = Number(execFileSync(FFPROBE, ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', src]).toString().trim());
 const coverAt = Math.max(1, Math.min(dur - 1, dur * 0.3));
-run(['-v', 'error', '-y', '-ss', String(coverAt), '-i', src, '-frames:v', '1', '-vf', 'scale=1280:-1', '-q:v', '3', path.join(ASSETS, 'cover.jpg')], 'ジャケット');
+run(['-v', 'error', '-y', '-ss', String(coverAt), '-i', src, '-map', '0:v:0', '-frames:v', '1', '-vf', "scale='min(1280,iw)':-2", '-q:v', '3', path.join(OUT_S, 'cover.jpg')], 'ジャケット');
 
-run(['-v', 'error', '-stats', '-y', '-i', src, '-an', '-c:v', 'libx264', '-crf', '21', '-preset', 'medium',
-  '-pix_fmt', 'yuv420p', '-g', '48', '-movflags', '+faststart', path.join(ASSETS, 'mv_1080.mp4')], '映像 1080p（数分かかります）');
-run(['-v', 'error', '-stats', '-y', '-i', src, '-an', '-vf', 'scale=1280:720', '-c:v', 'libx264', '-crf', '23', '-preset', 'medium',
-  '-pix_fmt', 'yuv420p', '-g', '48', '-movflags', '+faststart', path.join(ASSETS, 'mv_720.mp4')], '映像 720p');
+run(['-v', 'error', '-stats', '-y', '-i', src, '-map', '0:v:0', '-an', '-c:v', 'libx264', '-crf', '21', '-preset', 'medium',
+  '-pix_fmt', 'yuv420p', '-g', '48', '-movflags', '+faststart', path.join(OUT_S, 'mv_1080.mp4')], '映像 1080p（数分かかります）');
+run(['-v', 'error', '-stats', '-y', '-i', src, '-map', '0:v:0', '-an', '-vf', "scale='min(1280,iw)':-2", '-c:v', 'libx264', '-crf', '23', '-preset', 'medium',
+  '-pix_fmt', 'yuv420p', '-g', '48', '-movflags', '+faststart', path.join(OUT_S, 'mv_720.mp4')], '映像 720p');
 
 // 4) 解析 → 較正 → 譜面
 const node = process.execPath;
 for (const step of ['analyze.mjs', 'onset-bias.mjs', 'tempo-refine.mjs', 'generate-charts.mjs']) {
   console.log('[build] ' + step);
-  execFileSync(node, [path.join(ROOT, 'tools', step)], { stdio: 'inherit' });
+  execFileSync(node, [path.join(ROOT, 'tools', step), SONG], { stdio: 'inherit', env: { ...process.env, SONG } });
 }
 
 console.log('');
