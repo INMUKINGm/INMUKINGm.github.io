@@ -1,15 +1,15 @@
 /* ===========================================================================
    main.js — 起動・メインループ・入力
    =========================================================================== */
-import { AudioEngine } from './audio.js?v=ed970f5e';
-import { VideoSync } from './video.js?v=ed970f5e';
-import { Gfx } from './gfx.js?v=ed970f5e';
-import { Renderer } from './render.js?v=ed970f5e';
-import { TaikoRenderer, toTaikoChart } from './taiko.js?v=ed970f5e';
-import { Game } from './play.js?v=ed970f5e';
-import { settings, getBest, saveBest } from './store.js?v=ed970f5e';
-import { SongSelect, MODES, DIFFS } from './select.js?v=ed970f5e';
-import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=ed970f5e';
+import { AudioEngine } from './audio.js?v=f1d86c81';
+import { VideoSync } from './video.js?v=f1d86c81';
+import { Gfx } from './gfx.js?v=f1d86c81';
+import { Renderer } from './render.js?v=f1d86c81';
+import { TaikoRenderer, toTaikoChart } from './taiko.js?v=f1d86c81';
+import { Game } from './play.js?v=f1d86c81';
+import { settings, getBest, saveBest } from './store.js?v=f1d86c81';
+import { SongSelect, MODES, DIFFS } from './select.js?v=f1d86c81';
+import { $, $$, showScreen, currentScreen, buildSettings, renderResult, fmtScore, fmtTime, keyLabel } from './ui.js?v=f1d86c81';
 
 const audio = new AudioEngine();
 const videoEl = $('#video');

@@ -101,6 +101,10 @@ const C_DON = { core: '#ff2e86', lite: '#ff8fc0', glow: 'rgba(255,46,134,.75)' }
 const C_KA = { core: '#1fe6ff', lite: '#9ef4ff', glow: 'rgba(31,230,255,.75)' };
 const C_ROLL = { core: '#ffc24a', lite: '#ffe7b0', glow: 'rgba(255,194,74,.7)' };
 
+/* 大音符の大きさ。1.5倍だと16分の列で隣の小音符を飲み込んでしまうので
+   少し控えめにして、そのぶん外側の輪を太くして見分けをつける。 */
+const BIG_R = 1.28;
+
 export class TaikoRenderer {
   constructor(canvas) {
     this.cv = canvas;
@@ -136,7 +140,7 @@ export class TaikoRenderer {
     // 狭い画面は音符が重なるので、小さくしてスクロールも詰める
     this.rSmall0 = Math.min(this.laneH * 0.27, w * 0.044);
     this.rSmall = this.rSmall0 * (this._sm || 1);
-    this.rBig = this.rSmall * 1.5;
+    this.rBig = this.rSmall * BIG_R;
     this.leadMul = narrow ? 1.30 : 2.0;
   }
 
@@ -174,7 +178,7 @@ export class TaikoRenderer {
     if (!g) return;               // 終了と同時にフレームが来ても落ちないように
     // 詰まった譜面は音符を小さくする（重なって読めなくなるのを防ぐ）
     const sm = g.sizeMul || 1;
-    if (sm !== this._sm) { this._sm = sm; this.rSmall = this.rSmall0 * sm; this.rBig = this.rSmall * 1.5; }
+    if (sm !== this._sm) { this._sm = sm; this.rSmall = this.rSmall0 * sm; this.rBig = this.rSmall * BIG_R; }
     const c = this.ctx, w = this.w, h = this.h;
     c.clearRect(0, 0, w, h);
     const t = g.gameTime;
@@ -328,9 +332,13 @@ export class TaikoRenderer {
       c.beginPath(); c.arc(x, y, r * .62, Math.PI * 1.06, Math.PI * 1.72); c.stroke();
     }
     if (big) {
-      c.lineWidth = 1.2;
-      c.strokeStyle = kind === KA ? 'rgba(158,244,255,.5)' : 'rgba(255,143,192,.5)';
-      c.beginPath(); c.arc(x, y, r * 1.14, 0, 6.2832); c.stroke();
+      // 「大」の目印。二重の輪にして、大きさを抑えても一目で分かるようにする
+      c.lineWidth = Math.max(1.6, r * .085);
+      c.strokeStyle = kind === KA ? 'rgba(200,250,255,.92)' : 'rgba(255,196,224,.92)';
+      c.beginPath(); c.arc(x, y, r * 1.11, 0, 6.2832); c.stroke();
+      c.lineWidth = 1.1;
+      c.strokeStyle = 'rgba(255,255,255,.45)';
+      c.beginPath(); c.arc(x, y, r * .74, 0, 6.2832); c.stroke();
     }
     void approach;
   }

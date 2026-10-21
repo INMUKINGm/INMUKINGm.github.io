@@ -140,16 +140,16 @@ export class Game {
     /* 詰まった譜面ほどスクロールを速くして、音符が重なって塊に見えるのを防ぐ。
        距離は画面で決まっているので、lead（見えている時間）を縮めると
        同じ間隔の音符どうしが画面の上で離れる。音符自体も少し小さくする。 */
+    /* 速さはほとんど変えない。16分が続くところで音符が触れ合うのは
+       太鼓そのものなので、そこは詰まっていて良い。効かせるのはごく控えめに。 */
     if (this.mode === 'taiko') {
-      // たいこは1本のレーンに全部くるので、隣の音符との間隔そのもので決める
       const g = chartGap(this.notes, 0.25);
-      this.speedMul = Math.max(0.50, Math.min(1, g / 0.225));
-      this.sizeMul = Math.max(0.72, Math.min(1, g / 0.145));
+      this.speedMul = Math.max(0.92, Math.min(1, g / 0.16));
+      this.sizeMul = Math.max(0.92, Math.min(1, g / 0.13));
     } else {
-      // 4レーンは横に散るので、1秒あたりのいちばん多いところで決める
       const peak = Math.max(1, chartPeak(this.notes));
-      this.speedMul = Math.max(0.55, Math.min(1, 7.5 / peak));
-      this.sizeMul = Math.max(0.74, Math.min(1, 9.0 / peak));
+      this.speedMul = Math.max(0.86, Math.min(1, 9.5 / peak));
+      this.sizeMul = Math.max(0.90, Math.min(1, 11 / peak));
     }
     this.lead = this.set.scroll * this.speedMul;
     const first = sec ? sec.start : s.musicStart;
