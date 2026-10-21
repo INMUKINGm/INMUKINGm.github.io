@@ -2,6 +2,10 @@
 assets/songs/*/mv_1080.mp4
 # AAC が使えない環境向けの予備。容量が倍になるので配信には載せない
 assets/songs/*/song.ogg
+# 収録した動画（リポジトリには載せない）
+recordings/
+__rec.js
+
 # 中間ファイル
 work/*/song.wav
 work/*/source.txt

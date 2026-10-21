@@ -513,7 +513,15 @@ body.touch .ms-key[data-mode="1"]::after{border-left-color:currentColor;margin-l
   .settings-grid{grid-template-columns:1fr}
   .howto{grid-template-columns:1fr;overflow-y:auto;align-content:start;padding-bottom:8px}
   .how-card{padding:15px}
-  .res-wrap{gap:10px}
+  /* 縦長の画面は中身が入りきらないので、積み上げて縦スクロールさせる
+     （入りきらないまま重ねて描かれていた） */
+  .res-wrap{gap:10px;overflow-y:auto;overscroll-behavior:contain;padding-bottom:4px}
+  .res-body{flex:none;min-height:0;gap:10px}
+  .res-judges{align-content:start}
+  .res-graph{flex:none;padding:12px 14px;gap:4px}
+  .res-graph canvas{flex:none;height:92px;min-height:0}
+  .res-advice{flex:none;padding:11px 14px;font-size:11.5px;line-height:1.7}
+  .res-btns{flex:none;padding-bottom:2px}
   .res-break{display:none}
   .res-stamp{font-size:clamp(22px,6vw,38px)}
   .res-grade{font-size:46px}
